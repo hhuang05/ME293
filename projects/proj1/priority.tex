@@ -1,0 +1,154 @@
+\section{Priority-based Collection}
+
+\noindent
+
+
+
+
+\begin{itemize}
+
+\item Idea: use the GC size query mechanism to compute the size of each cache
+  entry and make that information available to the cache management and eviction
+  policies.
+
+\item The Guava cache includes a size-sensitive policy, but expects each entry
+  type to implement its own sizing mechanism. The GC size query mechanism is
+  perfectly complimentary because it can compute the size of any structure.
+
+\item More sophisticated size-sensitive policies include the greedy-dual
+  algorithm.
+
+\item Basic algorithm: Create GC size query references for each cache
+  entry. When the collector runs the sizes will be computed and the cache can
+  evict entries that exceed the total size bound according to the eviction
+  policy (LRU in our case).
+
+\item Issue: what should be the order of size queries? Key idea: we want the
+  size of the entry to represent accurately how much memory we would reclaim if
+  it were evicted. That is only true if the size measurement represents the
+  footprint reachable \emph{only} from the given object -- not from the roots,
+  and not from any earlier queries. In other words if two entries share some
+  internal structure, then the size query should charge that shared structure
+  against the entry less likely to be evicted. It's fine if both are evicted,
+  but if the entry charged with the shared region is the one evicted, the amount
+  of memory reclaimed will not be accurate, since the region will be kept alive
+  by the other entry.
+
+\item Entries must be sized in order of possible eviction, from least likely to
+  most likely. To support this requirement the system provides a size query
+  queue, which the application can manage. At GC time the collector visits a set
+  of size queries in the order specified in the queue. There may be multiple
+  queues, but each query can reside in only one queue.
+
+\item There is still a problem: eviction does not actually free any memory until
+  the \emph{next} collection cycle. One collection is required to size the
+  entries, which the Stash can use to perform evictions, but from user code
+  performing an eviction simply means removing the objects. A second collection
+  is required to reclaim the objects.
+
+\item Ironically, eviction can actually make things worse! If there are requests
+  for recently evicted entries the program can end up with two copies of the
+  entry in memory (one evicted and unreachable and the other recreated to serve
+  the cache request).
+
+\item To address this problem we allow the garbage collector to perform the
+  evictions. The Stash sets a total space bound on the query queue. The
+  collector performs the size query closures in order, but stops when the bound
+  is reached. Any remaining entries end up unmarked, and can therefore be
+  reclaimed by the sweeper immediately.
+
+\item The issue with this strategy is that entries could become partially
+  reclaimed if there are external references into the middle of the
+  structure. This is an issue with the size query mechanism as well, since
+  external references can cut off the size computation. This mechanism is never
+  unsafe, however, because it reclaims only those objects that are reachable
+  from the cache entry and nowhere else.
+
+\end{itemize}
+
+
+We have a mechanism to get the size of objects in terms of bytes at
+runtime. Specifically, given a collection of objects, we can figure out how much
+memory the collection uses. With this, we can look at the Stashe, a structure
+that can manipulate the collector to work with the logic of the programmer in
+mind, rather than just liveness.
+
+\subsection{Changes to GC}
+
+Just as before, the virtual machine has a double-ended queue for the
+queries. Along with the method to allow programmers to query the size of an
+object (\lstinline{querySizeOf}), there are methods to manipulate the deque,
+\lstinline{push} and \lstinline{remove}. We have added a \lstinline{long maxSize}, 
+the maximum number of bytes of values the user-level Stashe can
+keep.
+
+The marking phase is unchanged. The closure phase now has a global
+accumulator. If this accumulator exceeds \lstinline{maxSize} in the middle of
+measuring an object, we abandon the closure and report a size of 0 bytes. The VM
+removes all references from the query object to prevent dangling
+pointers. Furthermore, we remove the value of local accumulator from the global
+accumulator and move on to the next query. The collector will sweep the
+remainder of this object. In this way, we free some memory that previously would
+have stayed alive, but gone unused. The next collection will ultimately remove
+the abandoned query.
+
+\subsection{Data Structure}
+
+Figure ~\ref{fig:stashe} details the Stashe class. The structure consists of
+four parts, a map to store the key-value pairs, a map that relates keys to size
+queries, a stack to keep track of the most recently used keys, and the maximum
+number of bytes of values that can be stored.
+
+\begin{figure}[t]
+\begin{lstlisting}
+class Stashe <K,V> {
+  protected HashMap<K, V> map;
+  protected HashMap<K, GCSize> sizeMap;
+  protected Stack<K> stack;
+  protected long currentSize, maxSize;
+
+  public Stashe(long maxSize);
+
+  public boolean put(K key, V value);
+  public V get(K key);
+  public V remove(K key);
+
+  private void update();
+}
+\end{lstlisting}
+\caption{Interface for \lstinline{Stashe} data structure}\label{fig:stashe}
+\end{figure}
+
+As with a cache built around a HashMap, we can \lstinline{put} key-value pairs
+in, \lstinline{get} a value using a key, and \lstinline{remove} a value using a
+key. The Stashe manipulates the dequeue in accordance with the least recently
+used policy built in. When these three methods are called, we \lstinline{update}
+to keep the structure inline with the last collection.
+
+\paragraph{put} 
+Given a key-value pair, the Stashe removes any previous key in the maps and the
+stack. If the key is new, we query this value object and push it to the front of
+the deque. If the value previously in the map is the same as the one to be
+entered, the \lstinline{GCSize} object is reused and pushed to the front of the
+deque. Otherwise, we remove the previous query from the collector's deque and
+query the new object. This new query is pushed onto the front of the deque. In
+all cases, the key is moved to the top of the stack, denoting it as the most
+recently used key.
+
+\paragraph{get} 
+If there is a pair for a given key, we push the \lstinline{GCSize} query to the
+front of the deque and the key to the top of the stack.
+
+\paragraph{remove} 
+If there is a pair for the key, the key-value pair is removed from the map, the
+\lstinline{GCSize} object is removed from both the Stashe's map and the
+collector's deque. Finally, the key is removed from the stack.
+
+\paragraph{update} 
+If any of the GCSize objects were updated, then a collection occured. We go
+through the key-value map in order of the most recently used keys. If the
+\lstinline{GCSize} query reports had size 0 after collection, we remove it from
+the map. Otherwise, we keep it in the map. Note we do not have to check if we
+exceed the \lstinline{maxSize} at this stage since the collector ensured we only
+have \lstinline{maxSize} bytes of values after the garbage collection.
+

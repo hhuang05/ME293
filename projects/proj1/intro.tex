@@ -1,0 +1,54 @@
+\section{Introduction} \label{sec:intro}
+
+\subsection{Physical system}
+
+The physical system that I want to study is the altitude control of a
+fixed wing aircraft.
+
+\subsection{Motivation for study}
+
+This is related to my research as I delve into various flight control
+software. I think it will be good for me to have a deeper
+understanding of how they work.
+
+\subsection{Description of system states}
+
+I am considering using the full 12 states of the aircraft which
+include:
+
+\begin{enumerate}
+\item Positions in the inertia frame: $x$, $y$, $z$ 
+\item Velocities in body frame: $v_{bx}$, $v_{by}$, $v_{bz}$
+\item Roll, pitch, yaw rates: $p$, $q$, $r$
+\item Euler angles: $\phi$, $\theta$, $\psi$
+\end{enumerate}
+
+\subsection{Description of sensor data used for estimation}
+
+If we assume all states can be sensed directly, one potentially
+interesting route would be to add instrumentation into ardupilot to
+record the values of the state variables. Pick a representative
+scenario and derive the data. In fact, in one of the bug injection
+experiments I had, one of the bugs had a large pitch demand at one point
+when the plane came in for a landing. Maybe in a later project when the states
+are not all directly sensed I can bring in the sensors.
+
+As for the sensors, I'm not sure about this yet, but I think the following would make
+sense (basically the things available in Ardupilot)
+
+\begin{enumerate}
+\item IMU (accelerometer, gyros)
+\item GPS
+\item Barometer
+\end{enumerate}
+
+\subsection{Description of approach to develop a model}
+
+I plan on using the following references to get the dynamics equations:
+
+\begin{enumerate}
+  \item Model-based fault diagnosis for aerospace systems: a survey
+    \cite{marzat_model-based_2012}
+  \item Aircraft Dynamics and Automatic Control \cite{mcruer2014aircraft}
+\end{enumerate}
+  

@@ -1,0 +1,58 @@
+\section{Signal-flow Graph}
+
+Signal-flow graphs were originally invented by Shannon and
+later developed by Mason. The flow graph consist of nodes connected by
+directed edges and is used to represent a set of linear
+relationships. The origin of the term comes from the fact that this
+type of analysis was being applied to electrical circuits. Before we
+go further, it is useful to first define some terms.
+
+\subsection{Definitions}
+
+The basic element that makes up a signal-flow graph is a
+\textit{branch}, which is a directed edge that connects between two
+\textit{nodes}. Nodes represent important variables in the system. The
+direction of the branch relates two nodes and creates a dependency
+between them in terms of the signal flow. The relations between nodes
+is written next to the branch and is either positive or negative to
+indicate the type of feedback. A \textit{path} is made up of one or
+more branches that allows a signal to flow from one node to
+another. The following example taken from \cite{dorf_modern_2011}
+illustrates these concepts.
+
+\noindent Consider a system represented by two state equations:
+\begin{align*}
+  \dot x_1 &= -2x_1 + u \\
+  \dot x_2 &= dx_1 - 3x_2 \\
+\end{align*}
+Given that $y = x_2$, we can rewrite these equations into the
+state space form:
+
+\begin{align*}
+  \mathbf{\dot x} &=
+  \begin{bmatrix}
+    -2 & 0 \\
+    d & -3 \\
+  \end{bmatrix}
+  \mathbf{x} +
+  \begin{bmatrix}
+    1 \\
+    0 \\
+  \end{bmatrix}
+  u \\
+  y &=
+  \begin{bmatrix}
+    0 & 1 \\
+  \end{bmatrix}
+  \mathbf{x} +
+  [0] u
+\end{align*}
+
+This turns into the following signal-flow graph:
+
+\begin{figure}[h]
+  \ig{scale=0.4}{signalflowgraph1.eps}
+  \caption{Signal-flow graph of the system of simultaneous equations.}
+  \label{fig:signalflowgraph1}
+\end{figure}
+

@@ -1,0 +1,186 @@
+\section{Analysis of Bugs ``in the Wild''} \label{fault_analysis}
+
+\subsection{Prior work}
+
+Evaluating bug detection algorithms has always been an issue, since
+the program and the bug must be representative of those that exist in
+the real world. The question of whether a program or a bug are
+representative continue to persists as programs have become larger and
+more complex. The initial basis was the Siemens bug suite created in
+the early 90's, introduced by Hutchins et al \cite{hutchins1994}. This bug suite
+contained seven C programs ranging from 141 to 512 lines long. Bugs were
+artificially introduced, mostly by mutating single lines of code to
+create 130 fault programs. The Siemens bug suite has been used
+extensively in Bug detection \cite{fei_argus_2006} (other work).
+
+The major concern in using the Siemens bug suite is that the programs
+are generally quite short, all less than a thousand lines. This no
+longer serves as the ``typical'' case in modern software. In addition,
+the bugs were injected manually and are not representative of bugs
+that arise naturally in software development projects. 
+
+Other than using the Siemens bug suite, much work has focused on using
+open-source software that has a collection of bugs reported. These
+appear below:
+
+\begin{enumerate}
+\item Server and client applications
+  \begin{enumerate}
+    \item Concurrency bugs - MySQL, Apache, Mozilla and OpenOffice
+      \cite{lu_learning_2008} \cite{fonseca_study_2010}
+    \item Servers: Apache, Squid, Tomcat, OpenSSH, MySQL, SVN
+      \cite{sahoo_empirical_2010} \cite{Li2006}
+  \end{enumerate}
+  \item Router Software \cite{yin_towards_2010}
+  \item JPL and NASA unmanned space missions software
+    \cite{grottke_empirical_2010}
+  \item Database and Operating Systems : Tandem \cite{sullivan_software_1991}
+    \cite{chillarege_orthogonal_1992}, Linux \cite{Tan2013}
+\end{enumerate}
+
+As can be seen from the above list, currently the literature lacks any
+study of bugs in real-time control systems, although there is prior
+work on server applications. There has been some work on generating
+bug benchmarks for C/C++ applications \cite{cifuentes_begbunch_2009}
+\cite{lu2005bugbench}. The work by Lu et al \cite{lu2005bugbench}
+addressed mostly memory issues, with only two bugs that are semantic
+bugs.
+
+We hypothesize that because the requirements differ, the design for these
+applications are fundamentally different, which lead to completely
+different classes of bugs. If we can gain an understanding of the
+classes of bugs and why they occur and how they occur in a particular
+domain, we may have more genearlized knowledge to come up with a
+solution.
+
+Fundamental Question: Are the bugs encountered in UAV autopilots the
+same classes of bugs that appear in open-source software as
+investigated in prior work? If they are not the same distribution,
+then the current tools that are used to tackle open-source software
+may not be sufficient to detect bugs in avionics. 
+
+
+\subsection{Summary of Bugs in UAV Autopilot Software}
+
+\subsubsection{OpenPilot}
+
+\textbf{**Note**}
+
+Since the summer of 2015, there were disagreements within the project
+team of OpenPilot, leading to the close of this project. As such, I
+can no longer access the bug tracker and get the relevant details. The
+project has a spin-off that is being actively developed called
+Librepilot, but the bug tracker has no record of all the old bugs.
+
+A listing of all the bugs that were manually classified appears in
+Table \ref{table:opbugs}. 
+ 
+\begin{table} [h]
+  \begin{tabular}{r l}
+    No. Bugs & Category \\
+    \hline
+    3 & Arithmetic Overflow \\
+    2 & Bad Initial Value \\
+    1 & Bad Task Priority \\
+    22 & Build \\
+    7 & Calculation Error \\
+    1 & Category \\
+    7 & Comms \\
+    2 & Concurrency \\
+    3 & Configuration \\
+    1 & Connection \\
+    4 & Downstream \\
+    3 & External Lib \\
+    3 & External System \\
+    9 & Fail Safe \\
+    32 & GUI \\
+    1 & Integer Maxed \\
+    1 & Integer Overflow \\ 
+    13 & Logic \\
+    11 & NA \\
+    5 & Not Enough Information \\
+    1 & Organization \\
+    1 & Performance \\
+    1 & Pointer Arithmetic \\
+    5 & Programmer Mistake \\
+    10 & Resource Bug \\
+    4 & Saving \\
+    1 & Saving and Sync \\
+    9 & Wrong Default \\
+    \hline
+    \textbf{163} & Total \\
+  \end{tabular}
+  \caption{A summary of 163 manually classified bugs that appeared in
+    Openpilot after filtering for priority Blocking and Major}
+  \label{table:opbugs}
+\end{table}
+
+\subsubsection{Ardupilot}
+
+We applied the Orthogonal Defect Classification (ODC) method 
+\cite{chillarege_orthogonal_1992}, a well-regarded standard for
+classifying bugs and their triggers to bugs in Ardupilot. We examined
+bugs in Ardupilot pertaining specifically to Arducopter and narrow
+down the field by applying filters to look at only bugs which were
+legitimate bugs and fixed, not issues which are feature requests or
+issues which won't be fixed. We have examined 35 bugs currently, and
+have classified them manually according to the ODC. 
+
+\begin{table} [h]
+  \begin{tabular}{c|c c}
+    DefectType & Count & Percentage \\
+    \hline
+    Function/Class/Object & 2 & 5.88\%\\
+    Algorithm/Method & 8 & 23.53\% \\
+    Assignment/Initialization & 13 & 38.24\%\\
+    Checking & 6 & 17.65\%\\
+    Interface/O-O Messages & 1 & 2.94\% \\
+    Timing/Serialization & 4 & 11.76\%\\
+    \hline
+  \end{tabular}
+\end{table}
+
+If we look at the combination of Algorithm and Timing bugs, they make
+up approximately 34\% of the bugs examined in the database. These are
+the bugs that we are interested in. If we then drill down further and
+check the breakdown in terms of their impact, we can see that they
+impact largely in terms of reliability and capability, that is that
+these bugs usually lead the system to become less reliable by taking
+away or making the user suspicious of certain capability. 
+
+From this analysis, we can then focus on algorithmic and timing bugs
+as classified by the ODC meethod. Algorithmic bugs have the
+characteristic that they do not immediately cause the program the
+stop, unlike a memory errors like segmentation fault. Nor are they
+directly concurrency related. They have many root causes, one of which
+may be due to the nondeterministic nature of events generated by the
+system.
+
+\begin{table} [h]
+  \begin{tabular}{r|c c}
+    Functional Aspects & Algorithm/Method & Timing/Serialization \\
+    \hline 
+    Sensing & 2 & 2 \\
+    Control & 1 & 2 \\
+    Actuation & 0 & 0 \\
+    Navigation & 2 & 0 \\
+    Communication & 0 & 0 \\
+    Overhead & 0 & 0 \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\begin{table} [h]
+  \begin{tabular}{c|c c}
+    Impact & Algorithm/Method & Timing/Serialization \\
+    \hline
+    Reliability & 3 & 3 \\
+    Capability & 3 & 0 \\
+    Performance & 1 & 1 \\
+    Requirements & 0 & 0 \\
+    Installability & 0 & 0\\
+    Usability & 1 & 0 \\
+    \hline
+  \end{tabular}
+\end{table}
+

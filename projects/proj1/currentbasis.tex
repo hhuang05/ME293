@@ -1,0 +1,249 @@
+\section{Current Basis}
+
+Currently this project can be broken down into five components, as
+illustrated by Figure \ref{fig:projcomp}.
+
+\begin{figure}[h]
+  \ig{scale=0.35}{proj_components.eps}
+  \caption{Five components of the project so far. }
+  \label{fig:projcomp}
+\end{figure}
+
+It is important to understand the current basis as a complete pipeline
+before looking into changes in any of the six axes below. The current
+basis seeks to answer the following question carried over from the
+AIAA paper: \textbf{Can we implement our bug-detection scheme in a
+  real-world UAV program, using a real bug and get good results?} If
+we treat this problem as a supervised problem with known runs of
+normal and buggy programs, then we can get a ROC AUC of 0.9986 using
+logistic regression as the discriminant model. The current
+basis for the bug-detection algorithm is as follows:
+
+\subsection{Code Base}
+
+Currently all experiments have been performed on Ardupilot which is
+written in C++, but I have also studied the code base for LibrePilot,
+which was our original target for studying bugs ``in the wild''. 
+
+\begin{table*} [h]
+  \begin{tabular} {c | c c}
+    Project & Language & Size (SLOC in Thousands) \\
+    \hline
+    Ardupilot & C++ & 100 \\
+    Librepilot & C & \\
+  \end{tabular}
+\end{table*}
+
+\subsection{Bug}
+
+\subsubsection{Ardupilot 2194}
+
+\lstinputlisting{ardubug2194.cpp}
+
+time\_since\_last\_xy\_update() returns a probabilistic answer since that
+changes all the time depending on when the xy\_controller is
+updated. get\_dt\_xy() returns 0.2 as the position controller executes
+at 50hz (which is known at compile time). dt is going to be less than
+get\_dt\_xy() for most executions of the function, therefore the
+z\_controller is not updated in a timely fashion, leading to the UAV
+not able to control its altitude.
+
+There is no way to tell if this is incorrect through static analysis
+because the code compiles. We don't know for sure when the
+xy\_controller was last updated. In fact, that time varies based on the
+clock of the underlying hardware. Correctness here is probabilistic
+depending on the value of get\_dt\_xy() since a lower threshold may
+trigger more updates to the z\_controller, which may mask even more of
+the bug.
+
+We can tell if this is correct if we fly the drone in simulation and
+look at how it interacts physically with the environment. Since dt is
+a distribution with a mean and std, assuming normal distribution, I
+can do a student t test to check the probability of that predicate
+being true. In this case, since get\_dt\_xy() = 0.02, the probability of
+the predicate being true is very low and therefore the code surrounded
+by the if statement has a low chance of being executed. From this we
+can infer that the global state variables these functions update must
+be good candidates to monitor if somehow the underlying distribution
+changes for dt.
+
+This bug is easy to detect because it is so far from the mean of dt
+that it is immediately noticeable. However, this bug would be much
+harder to detect if it was closer to the mean and
+update\_z\_controller() was run more frequently. dt has a mean of
+0.00866, stddev of 0.00577. So there is a 2.47\% chance of the code
+being executed.
+
+\subsection{Probes}
+
+In creating the training and test set, we make the assumption that
+software within the avionics domain will consist of many normal runs
+and few faulty runs due to the software being heavily
+tested. Therefore, the simulation program was run for a total of 600
+trials. 500 trials were run under normal conditions with no software
+bug. The other 100 trials were run with the addition of one software
+bug in the source code. 250 normal and 50 faulty trials (50\% of the
+data) were segregated to create the test set, which was not touched
+until verification. The remaining data were then used to construct the
+training set.
+
+\subsubsection{Data Collection}
+
+The data were collected from executions using Ardupilot and the
+ArduCopter UAV. We ran simulations using Software In the Loop
+(SITL), a technique that invoked the autopilot with sensor inputs from
+a simulated physical environment. As depicted in Figure \ref{fig:ardusim}, we
+wanted to simulate the typical use case of a UAV, which is to takeoff
+to some specific altitude, go through a series of waypoints at varying
+altitudes as a part of its mission, then once the final waypoint is
+reached, it returns to home and lands.
+
+\begin{figure}[h]
+  \ig{scale=0.25}{ardupilot_sim.png} 
+  \caption{A simulation in SITL of Ardupilot using ArduCopter UAV to
+    run through a series of randomly generated waypoints and land.}
+  \label{fig:ardusim}
+\end{figure}
+
+Within this simulated environment, we then ran the
+autopilot through the following scenario that represented a trial:
+
+\begin{enumerate}
+\item We start the UAV at -35.363261 latitude,
+  149.165230 longitude as the home location. We then create four
+  random way points around the home location, each waypoint is
+  created by generating a sample from a uniform distribution
+  between -0.002 and 0.002 and adding the sample to the home
+  coordinates. The altitude for each waypoint is also determined
+  by sampling uniformly between 50 to 350 meters.
+  \todo[inline]{Change the altitude to between 10 and 400 feet
+    to make it inline with FAA requirements}
+\item The simulation took place in real-time. Therefore, we
+  limited the total time of the simulation to no more than 20
+  minutes, so if the UAV is still flying at that time, we stop
+  the process.
+  \item The autopilot was instrumented to capture 10 signals for
+    analysis by the proposed bug-detection algorithm at each scheduler
+    tick. These signals included: sensed altitude (m), latitude
+    ($^\circ$), longitude ($^\circ$), estimated positions north, east
+    and down (m), estimated velocity north, east and down (m/s),
+    throttle output.
+
+    \todo[inline]{What are the units of throttle?}
+    
+\end{enumerate}
+
+\subsubsection{Data Processing}
+
+After the traces are collected, we go through a data cleaning and
+processing step. We clean the trace by first pruning
+the first 30 seconds. This is because the autopilot usually takes
+roughly 30 seconds for all the sensors and startup code to be
+initialized and during that time there is a lot of dithering in the
+sensors, which may contribute noise in to the bug detection
+algorithm. 
+
+Since the waypoints in the mission scenario are generated
+randomly, the waypoints may be close together or far apart, leading to
+varying durations in actual flight time. The issue here is that if
+flights are of different durations, for instance, buggy flights taking
+longer than normal flights. Then we will have an undesired over
+representation of the buggy flights in our dataset. We resolve this issue by
+choosing flights in which the flight duration was a minimum of 6.5
+minutes, and trimming all traces to equal length. 
+
+\subsection{Features}
+
+Table \ref{table:features} lists all current thirteen features being used. 
+
+\begin{table*}[t]
+\centering % used for centering table
+\begin{tabular}{c c} % centered columns (4 columns)
+\hline\hline %inserts double horizontal lines
+Feature & Equation \\ [0.5ex] % inserts table
+%heading
+\hline \\ [0.5ex] % inserts single horizontal line
+Slope$^*$, $\hat{m}_n$ & $\{\hat{m}_n, \bar{x}_n\} =
+\argmin\left(\sum_{k=0}^{K}
+(x_n(k)-\hat{m}_n(t(k)-t(0))-\bar{x}_n)^2\right) $ \\ [1ex] % inserting body of the table
+Mean, $\bar{x}_n$ & $\bar{x}_n = \frac{1}{K} \sum_{k=0}^{K} x_n(k)$ \\ [1ex]
+
+Median,  & [equation here] \\ [1ex]
+
+Standard Deviation$^*$, $\hat{\sigma}_n$ & $\hat{\sigma}_n = \frac{1}{K}
+\sum_{k=0}^{K} (x_n(k)-\bar{x}_n)^2 $ \\ [1ex]
+
+Skew, $\hat{\gamma}_n$ & $\hat{\gamma}_n = \frac{\frac{1}{K}
+\sum_{k=0}^{K} (x_n(k)-\bar{x}_n)^3}{\hat{\sigma}_n^{3/2}} $ \\ [1ex]
+
+Kurtosis, $\hat{\kappa}_n$ & $\hat{\kappa}_n = \frac{\frac{1}{K}
+  \sum_{k=0}^{K} (x_n(k)-\bar{x}_n)^4}{\hat{\sigma}_n^2} $ \\ [1ex]
+
+Entropy $H_n$, & $H_n = - \sum_{k=0}^{K} \mathbb{P}[x_n(k)] * \log \mathbb{P}[x_n(k)]$ \\ [1ex] 
+
+Derivative Zero Crossings$^*$, $Z_n$ & $Z_n = \sum_{k=0}^{K-1} (\sign(\dot{x}_n(k))\sign(\dot{x}_n(k-1) \leq 0) $ \\ [1ex] 
+Top Quartile Total Power$^*$, $Phigh_n$  & $Phigh_n = 10*\text{log}_{10}(\sum_{\omega\in\Omega_{top}} P_n[\omega])  $ \\ [1ex] 
+Bottom Quartile Total Power$^*$, $Plow_n$  & $Plow_n = 10*\text{log}_{10}(\sum_{\omega\in\Omega_{bot}} P_n[\omega])  $ \\ [1ex] 
+Ratio of Top to Bottom Power$^*$, $\rho_n$  & $\rho_n = \frac{Phigh_n}{Plow_n}  $ \\ [1ex]  %Note:  This is UNITLESS 
+Peak Power$^*$, $Pmax_n$ & $Pmax_n = \max_\omega(P_n(\omega))$  \\ [1ex]
+Frequency of Peak Power$^*$, $\omega_n$ & $\omega_n = \argmax(P_n(\omega))$  \\ [1ex]
+\end{tabular}
+\caption{Feature Set, the original eight used in the AIAA paper
+  appears with * next to their names} % title of Table
+\label{table:features} % is used to refer this table in the text
+\end{table*}
+
+\subsection{Clustering}
+
+One lingering question held over from the AIAA paper is: Does
+clustering have any impact on the performance of the classifier like
+it did in the AIAA paper?
+
+To test this hypothesis, we designed the following experiment:
+
+\begin{enumerate}
+\item  We start by picking a value for $k$, which is the number of
+  clusters and we decided on $k \in [2,20]$ as we had done on the
+  previous paper. We focus only on the training set and use K-means
+  clustering on the feature vector $\bv{f}_n \in \mathbb{R}^{13}$ for
+  all variables to obtain clustering centroids.
+\item Once we have the cluster centroids, we evaluate the result of
+  the clustering using the silhouette score. Since the silhouette
+  score is extremely costly to calculate, we subsample by calculating
+  the silhouette score for only 20,000 examples and not the entire
+  training set. 
+\item Now we create cluster assignment vectors $\bv{c} \in
+  \mathbb{R}^{10}$ and then use logistic regression to train on $\bv{c}$
+\item This was repeated 10 times for each $k$ and the mean and one
+  standard deviation is plotted.
+\end{enumerate}
+
+\begin{figure}[h]
+  \ig{scale=0.5}{kmeans_clustering_result.png}
+  \caption{Evaluating the effect of using the K-means clustering
+    algorithm on logistic regression accuracy performance by changing
+    $k$, the number of clusters}
+  \label{fig:kmeansclustering}
+\end{figure}
+
+We can see the result of this experiment in Figure
+\ref{fig:kmeansclustering}. Since the silhouette coefficient ranges
+from -1 to 1, with 1 meaning that an example is well clustered, -1
+meaning that the examples belongs in another cluster and 0 meaning
+that the 
+
+\subsection{Learning Algorithm}
+
+Logistic Regression, whose weights are determined using Stochastic
+Gradient Descent, which uses a coordinate descent algorithm.
+
+\subsection{Results}
+
+We see that the results are pretty good.
+
+\begin{figure}[h]
+  \ig{scale=0.5}{250N50B_roc.png}
+  \caption{The Receiver Operational Characteristic (ROC) curve used to
+    evaluate the logistic regression classifier. }
+  \label{fig:logregroc}
+\end{figure}
