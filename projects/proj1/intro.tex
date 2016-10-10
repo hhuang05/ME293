@@ -1,54 +1,31 @@
 \section{Introduction} \label{sec:intro}
 
-\subsection{Physical system}
+%% Motivation for your study, what problem are you trying to solve? What
+%% do you hope that your analysis will accomplish and who will benefit?
 
-The physical system that I want to study is the altitude control of a
-fixed wing aircraft.
+Jet fuel is expensive. In fact, according to the International Air
+Transport Association (IATA), the cost of jet fuel in 2012 for the
+airline industry accounted for 33\% of operating expenses. In the past
+few years the cost of fuel has come down and the situation has improved
+a little for airlines. However, even though the airline currently
+enjoy higher profits due to lower oil prices, this is no guaranteed
+that this trend can continue. 
 
-\subsection{Motivation for study}
+Aircraft manufacturers understand this economic reality. New planes
+are designed with fuel economy as one of the most important features. 
 
-This is related to my research as I delve into various flight control
-software. I think it will be good for me to have a deeper
-understanding of how they work.
+How does this apply to control. 
 
-\subsection{Description of system states}
 
-I am considering using the full 12 states of the aircraft which
-include:
 
-\begin{enumerate}
-\item Positions in the inertia frame: $x$, $y$, $z$ 
-\item Velocities in body frame: $v_{bx}$, $v_{by}$, $v_{bz}$
-\item Roll, pitch, yaw rates: $p$, $q$, $r$
-\item Euler angles: $\phi$, $\theta$, $\psi$
-\end{enumerate}
+Problem could be that current fuel prices are low, which may force
+airlines to rethink how they control their aircraft. Whereas a few
+years ago fuel prices were extremely high, so you want a control
+scheme that minimizes fuel consumption for maximum profit. These
+days, as fuel prices are so low, one could rethink this control
+scheme.
 
-\subsection{Description of sensor data used for estimation}
-
-If we assume all states can be sensed directly, one potentially
-interesting route would be to add instrumentation into ardupilot to
-record the values of the state variables. Pick a representative
-scenario and derive the data. In fact, in one of the bug injection
-experiments I had, one of the bugs had a large pitch demand at one point
-when the plane came in for a landing. Maybe in a later project when the states
-are not all directly sensed I can bring in the sensors.
-
-As for the sensors, I'm not sure about this yet, but I think the following would make
-sense (basically the things available in Ardupilot)
-
-\begin{enumerate}
-\item IMU (accelerometer, gyros)
-\item GPS
-\item Barometer
-\end{enumerate}
-
-\subsection{Description of approach to develop a model}
-
-I plan on using the following references to get the dynamics equations:
-
-\begin{enumerate}
-  \item Model-based fault diagnosis for aerospace systems: a survey
-    \cite{marzat_model-based_2012}
-  \item Aircraft Dynamics and Automatic Control \cite{mcruer2014aircraft}
-\end{enumerate}
+To investigate how effect of cheap vs expensive control in the
+LQR controller on the behavior of the dynamics of an airspeed-hold
+controller.
   

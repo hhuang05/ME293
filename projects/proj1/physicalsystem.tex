@@ -1,0 +1,143 @@
+\section{Physical System} \label{sec:physys}
+
+%% Description of the problem you are trying to solve and the states you
+%% are trying to control; description of the performance goal(s) you seek
+%% to achieve through feedback control.
+
+The physical system is of a Boeing 747 aircraft and I want to
+design a controller for the aircraft to maintain straight and level
+flight. Due to the nonlinear coupling between airspeed and altitude,
+slight changes in the pitch of the aircraft may lead to an eventual
+large deviation from the cruising altitude. For this reason, this type
+of controller is useful to control the aircraft to maintain cruising
+altitude. I will focus on pole placement of the open loop system so as
+to meet performance goals. In addition, I want to investigate how the
+linear assumptions of the physical system responds to nonlinear
+dynamics in simulation.
+
+\subsection{System Description}
+
+For aircraft, the kinematic equations of motion is written with
+reference to two sets of axes, the inertial frame and the body
+frame. The inertial frame lies outside the aircraft, usually it is a
+reference fixed with respect to the earth. The body frame has its
+origins at the center of mass of the aircraft, with the x-axis
+pointing forward towards the nose, z-axis pointing down from the body
+and the y-axis is perpenticular going out towards the right wing. An
+example of these two sets of axes and the associated rotation is
+pictured in figure ??.
+
+\todo[inline]{NEED FIGURE HERE}
+
+From these two sets of references, we define the kinematic equations
+for an aircraft as follows:
+\begin{align*}
+  \begin{bmatrix}
+    \dot x \\
+    \dot y \\
+    \dot z \\
+  \end{bmatrix}
+  &=
+  T_{\psi}T_{\theta}T_{phi}
+  \begin{bmatrix}
+    u \\
+    v \\
+    w \\
+  \end{bmatrix} \\
+  \begin{bmatrix}
+    \dot \phi \\
+    \dot \theta \\
+    \dot \psi \\
+  \end{bmatrix}
+  &=
+  (\frac{1}{c \theta})
+  \begin{bmatrix}
+    c \theta & s\theta s \phi & s \theta c \phi \\
+    0 & c \theta c \phi & -c \theta s \phi \\
+    0 & s \phi & c \phi\\
+  \end{bmatrix} 
+  \begin{bmatrix}
+    p \\
+    q \\
+    r \\
+  \end{bmatrix} \\
+\end{align*}
+where
+\begin{itemize}
+\item $T_{\psi}, T_{\theta}, T_{\phi}$ are the appropriate rotation
+matrices based on the three Euler angles: $\psi, \theta,
+\phi$.
+\item $x,y,z$ are the inertial frame coordinates.
+\item $u,v,w$ are the body frame coordinates.
+\item $p,q,r$ are the roll, pitch and yaw rates.
+\end{itemize}
+
+I made several assumptions to the aerodynamic forces to reduce the
+order of the problem. The first assumption is that
+the aerodynamic forces can be approximated by linear functions for
+small perturbations. This means that longitudinal and lateral dynamics
+can be de-coupled and treated independently. The second assumption is that this
+system has thrust and the elevator as the only control inputs
+into the system. With these two assumptions, the states in the system are: $[u, w, q, \theta, z,
+  x]$, with control inputs $[\delta e$, $\delta t]$.
+
+The third assumption is that the aircraft is in steady rectilinear
+flight. This implies that $\dot u = \dot w = \dot q = \dot \theta =
+0$. We can use the following linearized dynamic equations for $\dot x$
+and $\dot z$:
+\begin{align*}
+  \dot x &= u \\
+  \dot z &= -w + u_0 \theta \\
+\end{align*}
+
+Bryson \cite{bryson2015control} presents a linearized model of a
+Boeing 747 at cruising altitude of 40,000 feet, with a velocity of
+774 ft/sec. Adding the linear relationships of $\dot x$ and $\dot z$,
+we have the following linearlized model in state space form:
+\begin{align*}
+  \begin{bmatrix}
+    \dot u \\
+    \dot w \\
+    \dot q \\
+    \dot \theta \\
+    \dot z \\
+    \dot x \\
+  \end{bmatrix}
+  &=
+  \begin{bmatrix}
+    -.003 & .039 & 0 & -.322 & 0 & 0 \\
+    -.065 & -.319 & 7.74 & 0 & 0 & 0 \\
+    .0201 & -.101 & -.429 & 0 & 0 & 0\\
+    0 & 0 & 1 & 0 & 0 & 0 \\
+    0 & -1 & 0 & 7.74 & 0 & 0 \\
+    1 & 0 & 0 & 0 & 0 & 0 \\
+  \end{bmatrix} 
+  \begin{bmatrix}
+    u \\
+    w \\
+    q \\
+    \theta \\
+    z \\
+    x \\
+  \end{bmatrix} \\
+  &+  
+  \begin{bmatrix}
+    .01 & 1 \\
+    -.18 & -.04 \\
+    -1.16 & .598 \\
+    0 & 0 \\
+    0 & 0 \\
+    0 & 0 \\
+  \end{bmatrix}
+  \begin{bmatrix}
+    \delta_{e} \\
+    \delta_{t} \\
+  \end{bmatrix} \\
+\end{align*}
+
+\subsection{Performance Goals}
+
+After pole placement, the system should have a rise time of 4 seconds and a 2\% settling time
+of 12 seconds. Four seconds seems like a reasonable expected response
+time to changing altitudes. The long settling time ensures that passengers
+will not feel any jerking motion from controller compensation.

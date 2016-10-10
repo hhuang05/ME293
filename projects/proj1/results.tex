@@ -1,2 +1,24 @@
 \section{Results} \label{sec:results}
 
+From our analysis of the closed-loop system, we derived a gains matrix
+$K$ for full-state feedback. However, I want to test the controller on
+non-linear dynamics to check the performance of the controller,
+especially how it handles large deviations. 
+
+\subsection{Pole Placement}
+
+\begin{figure}[h]
+  \ig{scale=0.25}{747_openloopresponse.png}
+  \caption{Open loop response of the Boeing 747 system to impulse.}
+  \label{fig:openloop}
+\end{figure}
+
+\begin{figure}[h]
+  \ig{scale=0.25}{747_closedloopresponse.png}
+  \caption{Closed loop response after pole placement of the Boeing 747 system to impulse.}
+  \label{fig:closeloop}
+\end{figure}
+
+
+\subsection{Simulation} \label{sec:sim}
+

@@ -1,0 +1,39 @@
+\section{Analytical Methods} \label{sec:methods}
+
+%% Description of the methods and key equations you use in your design
+%% and performance assessment - including tools used to obtain a linear
+%% model and tools used to design a controller. 
+
+In order to place poles, I first looked at the step response of the
+open-loop system, shown in Figure \ref{fig:openloop}.
+\begin{figure}[h]
+  \ig{scale=0.25}{747_openloopresponse.png}
+  \caption{Open loop response of the Boeing 747 system to impulse.}
+  \label{fig:openloop}
+\end{figure}
+The eigenvalues
+of the Boeing 747 linearized model are: 0, $-0.0005 \pm 0.0675i$, $-0.375 \pm
+0.8817i$. These eigenvalues mean that the system has a dominant pole
+that does not decay since system stability is guaranteed only if
+$Re(\lambda) > 0$. To ensure a 4 second rise time and a 2\% settling time of
+12 seconds, I use the following equations:
+\begin{align}
+  t_r &\approx \frac{1.8}{\omega_n} \\
+  t_s &= \frac{4.0}{\sigma} \\
+  \omega_d &= \sqrt{\left( \omega_n^2 - \sigma^2 \right)} \\
+  \lambda &= -\sigma \pm \omega_dj 
+\end{align}
+Plugging in $t_{r}$ and $t_{s}$ with 4 and 12, I solve for $\omega_n$
+and $\sigma$, which is $0.45$ and $\frac{1}{3}$ respectively. Using
+these two values I solve for $\omega_d \approx 0.0914$. From our
+analytical solution, we see that the slow poles need to be placed at
+$-0.3023 \pm 0.45i$. Since the fast poles need to be at least four
+times faster, the other poles are located at: $-1.2092 \pm 0.0675i$
+and $-1.2092 \pm 0.8817i$. Looking at the step response of the
+closed-loop system, we see that the rise time and settling time of the
+system meets our specifications. 
+\begin{figure}[h]
+  \ig{scale=0.25}{747_closedloopresponse.png}
+  \caption{Closed loop response after pole placement of the Boeing 747 system to impulse.}
+  \label{fig:closeloop}
+\end{figure}
