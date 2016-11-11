@@ -1,0 +1,301 @@
+\section{Explorations into different areas}
+
+Besides looking at this as a supervised classification problem, we can
+treat this also as a novelty detection problem in which the only
+examples we have are normal runs of the program. 
+
+\subsection{One Class SVM}
+
+One approach for anomaly detection is to use the one class SVM. By
+learning on normal examples, the SVM essentially learns a frontier
+in a high dimensional space that bounds the normal examples. New
+instances are then placed within this space, if it falls outside this
+boundary, then it can be classified as sufficiently different from the
+training set and classified accordingly.
+
+The drawback of using the one class SVM is that it is parameterized by
+two parameters: the kernel to use in the SVM (linear, polynomial, rbf,
+sigmoid) and $\nu \in (0,1]$, which sets the frontier of the SVM,
+  thereby impacting the probability of finding outliers
+  \cite{scholkopf2001}.
+
+\subsubsection{Experimental approach}
+  
+We use a training set of 250 normal runs with a validation set of 250
+normal and 50 buggy runs using the same bug as discussed before. We
+hold everything else constant and report the AUC of the ROC curve by
+setting $\gamma = \frac{1}{130}$ and doing a search on $\nu$ using a
+step size of 0.1. For the polynomial kernel, a third degree polynomial
+was used. 
+
+\subsubsection{Results}
+
+For one class SVM, please see table \ref{table:oneclassSVMNumbers} and
+\ref{table:oneclassSVMROC}
+
+\begin{table*}
+  \begin{tabular}{c|c c c c}
+    $\nu$ & Linear & Polynomial & RBF & Sigmoid \\
+    \hline
+    0.1 & 0.6908 & 0.6701 & 0.9322 & 0.5 \\
+    0.2 & 0.5377 & 0.7449 & 0.8813 & 0.5\\
+    0.3 & 0.0303 & 0.7760 & 0.8327 & 0.5\\
+    0.4 & 0.5663 & 0.7838 & 0.7875 & 0.5\\
+    0.5 & 0.6885 & 0.7961 & 0.7411 & 0.5 \\
+    0.6 & -- & 0.7607 & 0.6923 & 0.5 \\
+    0.7 & -- & 0.6362 & 0.6436 & 0.5 \\
+    0.8 & -- & 0.5508 & 0.5983 & 0.5 \\
+    0.9 & 0.5230 & 0.4983 & 0.5503 & 0.5 \\
+  \end{tabular}
+  \caption{The Area Under the Curve (AUC) measures for the ROC curves
+    for the one class SVM using different kernels. The linear kernel
+    did not produce a result in 48 hours for three values of $\nu$,
+    these are denoted by --}
+  \label{table:oneclassSVMNumbers}
+\end{table*}
+
+\begin{table*}[t]
+  \begin{tabular}{cc}
+    \ig{scale=0.4}{linear_nu_results.png} &
+    \ig{scale=0.4}{poly_nu_results.png}  \\
+    \ig{scale=0.4}{rbf_nu_results.png} &
+    \ig{scale=0.4}{sigmoid_nu_results.png} \\
+  \end{tabular}
+  \caption{ROC Curves for each kernel type for the one class SVM under
+  different values of $\nu$, which has an impact on the placement of
+  the boundary between normal and buggy instances}
+  \label{table:oneclassSVMROC}
+\end{table*}
+
+
+\subsection{Hidden Markov Model Basis}
+
+Another approach to doing anomaly detection is to use a Markov process
+to model the system. As detailed in \cite{rabiner_tutorial_1989}, we
+can model system behavior as a Markov process consisting of a series
+of states and transitions. There are two approaches to using Markov
+models, as detailed below:
+
+\begin{enumerate}
+  \item Fully Observable - No hidden states, the observations
+    correspond directly to a state. This was the method chosen by the
+    Mary Jean Harrold paper \cite{baah_2006}. 
+  \item Hidden States - A set of hidden states, the number depends on
+    the problem domain, but here we can hypothesize there are two
+    hidden states: Normal and Buggy. 
+\end{enumerate}
+
+\subsubsection{Data Collection}
+We added instrumentation on the scheduler to record pertinent
+information. During each scheduler tick, the scheduler checks the task
+array to see whether a task is ready to be executed according to its
+execution frequency. There are a total of 32 tasks that have assigned
+periods, they are listed in Table \ref{table_tasklist}
+
+We capture the following additional information during each scheduler
+tick: task ID, task start time ($\mu$s), task execution duration
+($\mu$s), total available time per tick ($\mu$s), which ranged from 0
+to 2500 $\mu$s in Ardupilot.
+
+\begin{table} [h]
+  \begin{tabular}{l l}
+    \textbf{Task Name} & \textbf{Expected Frequency (Hz)} \\
+    \hline 
+    arm\_motors\_check & 10 \\
+    auto\_trim & 10 \\
+    barometer\_accumulate & 50 \\ 
+    compass\_accumulate & 50 \\
+    crash\_check & 10 \\
+    ekf\_check & 10 \\
+    epm\_update & 10 \\
+    fifty\_hz\_logging\_loop & 50 \\
+    frsky\_telemetry\_send & 5 \\
+    full\_rate\_logging\_loop & 400 \\
+    gcs\_check\_input & 400 \\
+    gcs\_data\_stream\_send & 50 \\
+    gcs\_send\_deferred & 50 \\
+    gcs\_send\_heartbeat & 1  \\
+    landinggear\_update & 10 \\
+    lost\_vehicle\_check & 10 \\
+    one\_hz\_loop & 1 \\
+    perf\_update & 0.1  \\
+    rc\_loop & 100 \\ 
+    read\_aux\_switches & 10  \\
+    read\_receiver\_rssi & 10\\
+    run\_nav\_updates & 50 \\
+    ten\_hz\_logging\_loop & 10 \\
+    three\_hz\_loop & 3  \\
+    throttle\_loop & 50 \\
+    update\_GPS & 50 \\ 
+    update\_altitude & 10 \\
+    update\_batt\_compass & 10 \\
+    update\_mount & 50 \\
+    update\_notify & 50 \\
+    update\_optical\_flow & 200 \\
+    update\_thr\_average & 100\\ 
+  \end{tabular}
+  \label{table_tasklist}
+  \caption{The task list for the scheduler in Ardupilot}
+\end{table}
+    
+We make the assumption of no hidden states, then the states I used
+are the individual tasks from the scheduler as described in Table
+\ref{table_tasklist}. There are 32 in all, but we amend this list by
+adding an IDLE task. The observations are only the task durations, the
+IDLE task having a duration that is the difference of the Total Time
+available for tasks to execute and the total time already spent executing
+other tasks.
+
+\subsubsection{Data Processing}
+
+Since each Model takes as input a
+sequence of observations, I decided to limit the length of any
+particular sequence to either 50,000 or 100,000. This translates to
+125 seconds and 250 seconds respectively of real time.
+
+\subsubsection{Model Training}
+
+The HMM model has five components:
+
+\begin{enumerate}
+  \item Number of distinct states $N$
+  \item Number of distinct symbols that can be observed in each state
+    $M$. This is continuous in our case since the observations are
+    task durations, I assume we're drawing the task durations from a
+    Gaussian distribution with mean and standard deviation according
+    to the training data. 
+  \item Transition Probability matrix $A$. This lists the probability
+    of transitioning from one state to another. 
+  \item Observational Probability distribution of the symbols $B$. To
+    say it another way, given that you are in a particular state (in
+    our case, a task), what is the probability that the system will
+    output a certain duration.
+  \item Initial state distribution $\pi$, usually initialized as
+    uniform distribution. 
+\end{enumerate}
+
+The model is compactly written as $\lambda = (A, B, \pi)$. There are
+three fundamental questions when it comes to an HMM, which must be
+solved for it to be used in any application: 
+
+\begin{enumerate}
+  \item \emph{Given a sequence of observations $O = O_1O_2 \hdots O_n$
+  and our model $\lambda = (A, B, \pi)$, how do we efficiently compute
+  $P(O|\lambda)$, the probability of this sequence occuring according
+  to our model}?
+  \item \emph{Given the observation sequence $O = O_1O_2 \hdots O_n$
+    and the model $\lambda$, how do we choose a corresponding state
+    sequence $Q = Q_1Q_2 \hdots Q_n$(these are inferred) which best
+    explains the observations}?
+  \item \emph{How do we adjust the model parameters $\lambda = (A, B, \pi)$ to
+    maximize $P(O|\lambda)$}
+\end{enumerate}
+
+The model parameters $A, B, \pi$ are all set to be uniformly
+distributed initially. Then during training, the Baum-Welch
+algorithm is used to iteratively change the parameters so that the
+$P(O|\lambda)$ is maximized. The Baum-Welch algorithm can be seen as
+an iterative Expectation-Maximization algorithm
+\cite{dempster77} which seeks to maximize $P(O|\lambda)$ until it
+meets a certain error tolerance. After the algorithm finishes, we can
+use the model parameters $A, B, \pi$ to calculate the forward
+probability of any arbitrary observation sequence.
+
+To perform anomaly detection, we then go through the state lattice in
+a forward-pass to compute a probability threshold when transitioning
+from one state to the next. This threshold represents the least
+likely path from one observation to the next. Once the model is
+trained, we present a test observation sequence to the model and it
+will evaluate $P(O|\lambda)$ at each step of the observation sequence,
+that is the probability of the observation given the model
+parameters. If any at point during the test sequence evaluation,
+$P(O|\lambda)$ is less than the threshold we found using the training
+data, then we assume that we have an anomalous observation sequence
+and we flag it. 
+
+\subsubsection{Evaluation}
+
+We hypothesized a HMM trained
+on a normal run would not flag normal runs as anomalous, basically suffer little
+false negatives and also would be able to flag buggy runs, suffering
+little false positives. To test this hypothesis, we used 200 trials of
+Ardupilot, half were normal and half were buggy with the same bug as
+when we were evaluating logistic regression. We trained a HMM model
+separately for \emph{each} normal run and evaluated the model against
+all other runs to get performance measures. The number of iterations
+of the Baum-Welch algorithm was set to 10, which was the
+default. There are two parameters to the experiment:
+
+\begin{enumerate}
+  \item \textbf{Length of observation sequence} - One issue that immediately
+    came up was the length of the observation sequence for
+    training. If the sequence was too short, then the model may not
+    learn sufficiently to generalize well. If it is too long, model
+    training time may be too long. I decided to vary this, starting
+    with a observation sequence length of 50k, 100k. 
+  \item \textbf{Tolerance} - This controls the point where the
+    Baum-Welch algorithm should stop, when the change in the model
+    parameters are below this threshold. I decided on two values:
+    0.01, 0.0001. For lower thresholds, the training time
+    would take much longer.
+\end{enumerate}
+
+\subsubsection{Results}
+
+Please see Table \ref{table:hmmresults} for results on the HMM
+model. If we add the TP and the TN rates together and compare with the
+FP and the FN rate, we see that for an observation length of 50k, the
+accuracy is 49.94\%, this means that the model is currently
+unable to distinguish between the normal and the faulty runs and is
+about as good as just guessing. The 100k observation length is
+slightly worse with an accuracy of 45.35\%. This may be explained by
+the fact that the HMM model only uses the task execution duration as
+the \textbf{only} observed feature.
+
+\subsubsection{Future TODOs}
+
+\begin{enumerate}
+  \item Use a fully observable HMM with schedule information and state
+  deltas.
+  \item Use a fully observable HMM with feature extracted from the raw
+    data
+  \item Use hidden states instead of fully observable, two states,
+    normal and faulty. This will allow us to model what happens if the
+    software gets intermittent faults.
+\end{enumerate}
+
+\begin{table*} [h]
+  \begin{tabular}{c|c c}
+    Obs Seq Length & 50k & 100k \\
+    Tolerance & 0.1, 0.0001 & 0.1, 0.0001 \\
+    Confusion Matrix &
+    \begin{tabular}{|c|c c|}
+      \hline
+      & Bug & Normal \\
+      \hline
+      Bug & 2406 & 7494  \\
+      Normal & 2418 & 7482 \\
+      \hline
+    \end{tabular} &
+    \begin{tabular}{|c|c c|}
+      \hline
+      & Bug & Normal \\
+      \hline
+      Bug & 6100 & 3800 \\
+      Normal & 7022 & 2878 \\
+      \hline
+    \end{tabular} \\    
+    TP & 12.15\% & 30.81\% \\
+    TN & 37.79\% & 14.54\% \\
+    FP & 12.21\% & 35.46\% \\
+    FN & 37.85\% & 19.19\% \\
+  \end{tabular} \\
+  \caption{For a total of 200 trials, half are buggy and half are
+    normal. We then train a HMM for each normal run and evalute its
+    performance on all other runs. These are the confusion matrices
+    for all experiments added together. The numbers are counts. The
+    confusion matrix for tolerance of 0.01 and 0.0001 are the same so
+    only one set is shown.}
+  \label{table:hmmresults}
+\end{table*}
+

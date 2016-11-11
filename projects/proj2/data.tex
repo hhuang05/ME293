@@ -1,0 +1,57 @@
+\section{Data sets} \label{sec:data}
+
+%% Description of the data sets you are using, whether based on
+%% simulations or experiment; how models will be used to design and test
+%% your feedback controller. 
+
+\subsection{Tracking state variables}
+
+I used MATLAB to perform simulations using linear dynamics adding in
+process and sensor noise. The continous state space system was 
+discretized using a time step of $\frac{1}{100}$ of a second. As the
+initial condition, I defined a reference state $x_{ref}$ with the
+same conditions that was used to linearize the model:
+\begin{align}
+  \mathbf{x}_{ref} &=
+  \begin{bmatrix}
+    u = 774 \\
+    w = 0 \\
+    q = 0 \\
+    \theta = 0 \\
+    z = 40000 \\
+    x = 774t\\
+  \end{bmatrix}
+\end{align}
+Using the process and sensor noise matrices $Q$ and $R$ defined
+in equations (\ref{eq:processnoise}) and (\ref{eq:sensornoise}), I
+then derive the estimator gain matrix $L$ for both filters:
+\begin{equation} \label{eq:estgain}
+  L =
+  \begin{bmatrix}  
+    0.0000  &  0.0030 &   0.0045  &   0.0013 \\
+    -0.0004  &  0.0004 &  -0.0080  &  -0.0409\\
+    0.0000  &  0.0000 &   0.0009  &  0.0026\\
+    0.0000  &  0.0001 &   0.0002  &  0.0012 \\
+    0.0003  &  0.0000 &   0.0047  &  0.0315 \\
+    0.0000  &  0.0077 &   0.0046  &  0.0046 \\
+  \end{bmatrix} 
+\end{equation}
+The estimator gain matrix derived above was used to update the
+estimator updates for both Kalman and Particle filters.
+
+\subsection{Comparing Mean Estimator Error}
+
+To satistify performance goal A and assess average estimator error, I
+developed a simulation scenario which involved a reduction in altitude of 20
+feet and the simulation ran for a total of 100 seconds. For the Kalman
+Filter, this simulation was run 1000 times to generate a
+distribution of errors in the estimator due to process and sensor
+noise. For the particle filter, the scenario was only ran once, but as
+it used 1000 particles, this seemed to be an equivalent comparison to
+the Kalman filter executing 1000 times.
+
+\subsection{Comparing Time of Execution}
+
+To satistify performance goal B and assess average estimation times,
+the MATLAB functions \texttt{tic} and \texttt{toc} were used to time the
+execution of each filter at each step. 

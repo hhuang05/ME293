@@ -1,0 +1,160 @@
+\section{Physical System} \label{sec:physys}
+
+%% Description of the problem you are trying to solve and the states you
+%% are trying to control; description of the performance goal(s) you seek
+%% to achieve through controller/estimator design.
+
+I will continue to use the physical system taken from Bryson
+\cite{bryson2015control} of a Boeing 747 aircraft. The aircraft's
+dynamics were linearlized for straight and level flight around the
+reference altitude of 40000 feet and a horizontal velocity of Mach 0.8 (774
+$\frac{ft}{sec}$). 
+
+%% The physical system is of a Boeing 747 aircraft and I want to
+%% design a controller for the aircraft to maintain straight and level
+%% flight. Due to the nonlinear coupling between airspeed and altitude,
+%% slight changes in the pitch of the aircraft may lead to an eventual
+%% large deviation from the cruising altitude. For this reason, this type
+%% of controller is useful to control the aircraft to maintain cruising
+%% altitude. I will focus on pole placement of the open loop system so as
+%% to meet performance goals. In addition, I want to investigate how the
+%% linear assumptions of the physical system responds to nonlinear
+%% dynamics in simulation.
+
+\subsection{System Description}
+
+For aircraft, the kinematic equations of motion is written with
+reference to two sets of axes, the inertial frame and the body
+frame. The inertial frame lies outside the aircraft, usually it is a
+reference fixed with respect to the earth. The body frame has its
+origins at the center of mass of the aircraft, with the x-axis
+pointing forward towards the nose, z-axis pointing down from the body
+and the y-axis is perpenticular going out towards the right wing. An
+example of these two sets of axes and the associated rotation is
+pictured in Figure \ref{fig:euler}.
+\begin{figure}[h]
+  \ig{scale=0.4}{eulerangles.png}
+  \caption{The three Euler angles $\psi, \theta$ and $\phi$ govern the
+  rotation of the body axes into the inertial axes}
+  \label{fig:euler}
+\end{figure}
+From these two sets of references, we define the kinematic equations
+for an aircraft as follows:
+\begin{align}
+  \begin{bmatrix}
+    \dot x \\
+    \dot y \\
+    \dot z \\
+  \end{bmatrix}
+  &=
+  T_{\psi}T_{\theta}T_{phi}
+  \begin{bmatrix}
+    u \\
+    v \\
+    w \\
+  \end{bmatrix} \\
+  \begin{bmatrix}
+    \dot \phi \\
+    \dot \theta \\
+    \dot \psi \\
+  \end{bmatrix}
+  &=
+  (\frac{1}{c \theta})
+  \begin{bmatrix}
+    c \theta & s\theta s \phi & s \theta c \phi \\
+    0 & c \theta c \phi & -c \theta s \phi \\
+    0 & s \phi & c \phi\\
+  \end{bmatrix} 
+  \begin{bmatrix}
+    p \\
+    q \\
+    r \\
+  \end{bmatrix}
+\end{align}
+where
+\begin{itemize}
+\item $T_{\psi}, T_{\theta}, T_{\phi}$ are the appropriate rotation
+matrices based on the three Euler angles: $\psi, \theta,
+\phi$.
+\item $x,y,z$ are the inertial frame coordinates.
+\item $u,v,w$ are the body frame coordinates.
+\item $p,q,r$ are the roll, pitch and yaw rates.
+\end{itemize}
+
+\todo[inline]{Need fix}
+Your second and third assumptions are tied together.  You cannot linearize without assuming a reference condition.  In this case, you have assumed a reference condition of straight and level flight.
+
+ -- but they
+are when linearizing about a straight-and-level flight reference
+condition.
+
+I made several assumptions to the aerodynamic forces to reduce the
+order of the problem. The first assumption is that
+the aerodynamic forces can be approximated by linear functions for
+small perturbations around the reference condition. Although
+longitudinal and lateral dynamics are not always decoupled,
+linearizing around a reference condition does mean that longitudinal and lateral dynamics
+can be de-coupled and treated independently. The second assumption is that this
+system has thrust and the elevator as the only control inputs
+into the system. With these two assumptions, the states in the system
+are: $[u, w, q, \theta, z, x]$, with control inputs $[\delta e$,
+  $\delta t]$.
+
+For steady rectilinear flight $\dot u = \dot w = \dot q = \dot \theta =
+0$. We can use the following linearized dynamic equations for $\dot x$
+and $\dot z$:
+\begin{align}
+  \dot x &= u \\
+  \dot z &= -w + u_0 \theta 
+\end{align}
+The linearlized state space model is presented as follows: 
+\begin{align*}
+  \begin{bmatrix}
+    \dot u \\
+    \dot w \\
+    \dot q \\
+    \dot \theta \\
+    \dot z \\
+    \dot x \\
+  \end{bmatrix}
+  &=
+  \begin{bmatrix}
+    -.003 & .039 & 0 & -.322 & 0 & 0 \\
+    -.065 & -.319 & 7.74 & 0 & 0 & 0 \\
+    .0201 & -.101 & -.429 & 0 & 0 & 0\\
+    0 & 0 & 1 & 0 & 0 & 0 \\
+    0 & -1 & 0 & 7.74 & 0 & 0 \\
+    1 & 0 & 0 & 0 & 0 & 0 \\
+  \end{bmatrix} 
+  \begin{bmatrix}
+    u \\
+    w \\
+    q \\
+    \theta \\
+    z \\
+    x \\
+  \end{bmatrix} \\
+  &+  
+  \begin{bmatrix}
+    .01 & 1 \\
+    -.18 & -.04 \\
+    -1.16 & .598 \\
+    0 & 0 \\
+    0 & 0 \\
+    0 & 0 \\
+  \end{bmatrix}
+  \begin{bmatrix}
+    \delta_{e} \\
+    \delta_{t} \\
+  \end{bmatrix} \\
+\end{align*}
+
+\subsection{Performance Goals} \label{subsec:perfgoals}
+
+There are two performance goals that I am interested in. The optimatl
+estimator shall:
+\begin{description}
+\item [A] Have an average absolute error that is less than 10 fee in
+  its estimate of current altitude. 
+\item [B] Be able to complete the estimation within 0.01 second.
+\end{description}

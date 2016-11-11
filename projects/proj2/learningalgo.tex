@@ -1,0 +1,91 @@
+\section{Learning Algorithms} \label{learningalgos}
+
+We have approached this problem both as a supervised and an
+unsupervised problem. Treating this as a supervised classification
+problem with known labels, we have used Logistic Regression and
+Support Vector Machines (SVM) and Perceptron to try to learn the
+classification boundary. If we treat this as a semi-supervised anomaly
+detection problem, we have used one class SVM and Hidden Markov Model
+as tools that will try to predict the probability of an anomaly given
+training data that is only non-faulty and testing data that is a mix
+of normal and faulty with low chance of having a faulty case. A
+description of each learning algorithm appears below.
+
+\subsection{Supervised Methods}
+
+\subsubsection{Logistic Regression}
+
+In order to assess whether a bug is present, we apply a probability
+model obtained through logistic regression. This process maps the
+feature vector $\vec{\bv{f}}_n$ into a probability that describes
+the algorithm's confidence that a bug is present.  The probability is
+modeled as a surface in feature space that has a sigmoid
+profile in one dimension and that is uniform in all other
+dimensions. The shape of this probability surface is illustrated in
+Figure \ref{fig:sigmoid}.
+
+We first define $a(\vec{\bv{f}}_n)$ to be the coordinate in the sigmoid direction,
+the probability $\mathbb{P}[Bug | Data]$ can be written as:
+
+\begin{equation}
+  \label{e:prob_bug}
+  \mathbb{P}[Bug | Data] = \frac{1}{1 + \exp(-a(\vec{\bv{f}}_n))}
+\end{equation}
+
+The $a$ coordinate is obtained from $\vec{\bv{f}}_n$ by an affine
+transformation that makes use of a weighting vector $\bv{w}$ and an
+offset $a_{ref}$ whose values are set during offline training. 
+
+\begin{equation}
+  \label{e:logreg}
+  a = \bv{w}^T \vec{\bv{f}}_n - a_{ref}
+\end{equation}
+
+\begin{figure}[h]
+  \ig{scale=0.45}{sigmoid2.eps} 
+  \caption{The feature vector $\vec{\bv{f}}_n$ is mapped into a probability
+    space through the sigmoid function. The illustration represents
+    two dimensions of the feature space, where $b$ is an arbitrary
+    coordinate orthogonal to $a$.}
+  \label{fig:sigmoid}
+\end{figure}
+
+This transformation sets the 50\% probability surface to be the
+hyperplane perpendicular to the weighting vector $\bv{w}$ and shifted
+from the origin by $a_{ref}$.  Other surfaces of constant probability
+are also hyperplanes normal to the vector $\bv{w}$.  When $\vec{\bv{f}}_n$
+aligns with $\bv{w}$, then $a$ is positive, and the probability tends
+toward 1; when $\vec{\bv{f}}_n$ points opposite $\bv{w}$, then $a$ is
+negative, and the probability tends toward 0.  The magnitude of $a$ is
+determined not only by the alignment of the $\bv{w}$ and
+$\vec{\bv{f}}_n$ vectors, but
+also by the magnitude of $\bv{w}$.  As the magnitude of the weight
+vector increases, the width of the sigmoid shrinks (e.g., hyperplanes
+of constant probability are spaced more closely together in feature
+space).
+
+In order to determine whether or not an alarm flag is raised, the
+probability $\mathbb{P}[Bug | Data]$ is compared to a threshold, $\mathbb{P}[Bug | Data]
+> T_p \to \text{alert}$. If the probability exceeds the threshold
+$T_p$, an alert is raised. The choice of the threshold represents a
+trade-off between false alarms (false positives) and missed detections
+(false negatives). In our implementation $T_P$ was set to a
+value of XXXXX.
+
+\todo[inline]{Fill in value for XXXXX}
+
+This choice was made to balance false positives and
+false negatives based on a Receiver Operator Characteristic (ROC)
+Curve analysis, as discussed in Section \ref{sec:evaluation}.
+
+\subsubsection{Support Vector Machines (SVM)}
+
+\subsection{Semi-Supervised Methods}
+
+We have employed two semi-supervised methods using a OneClass SVM and
+using a Hidden Markov Model.
+
+\subsubsection{One Class SVM}
+
+
+\subsubsection{Hidden Markov Model}

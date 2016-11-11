@@ -1,0 +1,141 @@
+\section{Codebases} \label{autopilot}
+
+We want to evaluate the efficacy of our bug detection system on
+actual aviation software systems. However, commercial autopilots
+from companies such Boeing or Airbus are proprietary and nearly
+impossible to acquire. While NASA is quite open about \textit{some} of its
+software, there has been a history of legal wrangling surrounding the
+release of its flight software. Given all these environmental issues which
+we can not control, it seemed most prudent for us to choose flight
+software which was the best approximation of this domain. 
+
+In the last five years, there has been an explosion of interest in the
+use of Unmanned Aerial Vehicles (UAV), commonly called
+\textit{drones}, for commercial purposes. UAV's were first used by
+hobbiests, who mounted a camera on top of it to take aerial
+photos. Not long after that, people changed the camera in favor of a
+camcorder to record movies. Very soon, people had lots of uses for
+UAV's, which ranged from land surveys to package delivery. We believe
+that UAV autopilots serve as an excellent approximation for the domain
+of avionics software. Even though UAV autopilots are written for soft
+real-time applications, the open-source nature of the projects provide
+a tremendous treasure trove of valuable defect data and associated fixes.
+
+\subsection{UAV Autopilots} \label{uav_autopilots}
+With the proliferation of UAV's, there are many open-source autopilot
+projects. A list of them follows. They are all written in C and C++ and
+all have well over hundred of thousands lines of code.
+
+\begin{enumerate}
+\item Ardupilot [C++] - SITL, automaked smoke tests
+\item LibrePilot [C/C++] - Formerly Openpilot minial tests, SITL needs
+  GUI
+\item Cleanflight [C] - Comprehensive tests, no SITL.
+  %% https://github.com/cleanflight/cleanflight
+\item Paparazzi UAV [C] - Cross compile OCaml into C, SITL.
+  %% https://wiki.paparazziuav.org/wiki/Main\_Page
+\item Px4 [C/C++] - Comprehensive tests.
+  %% https://github.com/PX4/Firmware
+\item MatrixPilot [C] - minimal tests, SITL.
+  %% https://code.google.com/p/gentlenav/
+\item Minnesota Custom UAV [C] - Matlab simulations.
+  %% http://www.uav.aem.umn.edu/wiki/Downloads
+\end{enumerate}
+
+\todo[inline]{Can we quantify how big is each code base}
+
+The autopilot is reponsible for controlling the trajectory of the UAV
+given a reference trajectory. Like many cyber-physical systems,
+the autopilot has a series of inputs coming from sensors that monitor
+its environment, some of these include: altitude, roll, pitch, yaw, position,
+velocity. The output from the autopilot is an adjustment of the throttle, whether to
+increase or decrease it to a certain value. This change in
+acceleration creates a feedback to the sensor readings at the next
+cycle. However, raw sensor values are often very noisy, so it is
+usually not used directly to compute the throttle output. Instead, the
+autopilot uses a Kalman Filter to fuse these raw sensor values to
+obtain an estimate of position and heading that has less uncertainty.
+
+%% \missingfigure{Basic sketch of a autopilot control system, with
+%%   inputs, sensor fusion and feedback}
+
+%% \missingfigure{A graph of position, altitude from raw sensor vs using
+%%   a Kalman Filter}
+
+\subsection{UAV Software Observations} \label{observations}
+
+\noindent \textbf{Hardware Abstraction Layer (HAL) for common API} - In
+terms of the software architecture, autopilots are constructed in
+similar ways. Often there is a Hardware Abstraction Layer (HAL)
+sitting between the program logic and the underlying hardware, which
+presents a common API to the autopilot designer without having to
+worry about lower level implementation details. This is due to the
+fact that UAV usually have hardware components from different
+manufacturers with different specifications and functionality.
+~\\
+
+\noindent \textbf{Repeated execution of tasks on a set interval} - All tasks have
+a specific execution frequency depending on their importance. So tasks
+such as reading altitude sensors execute at high rates such as 100Hz,
+compared to updating the throttle which will occur only at 1Hz. Since
+this is soft real-time, tasks are not necessarily forced to meet
+deadline every time it executes. This is in opposition to
+multithreading in normal software where execution of specific threads
+are unpredictable (in most cases, first come first serve). Whereas
+most if not all tasks in these systems have execution intervals
+defined apriori.
+~\\
+
+\noindent \textbf{Stateful} - There is a frequent update of current state of the
+vehicle, which is stored as either a global or a private
+data structure. All information being passed is related to this
+state. These variables are related to physical phenomenon, so these
+variables must occur within a valid/safe envelop of operation.
+~\\
+
+\noindent \textbf{Different Scheduler Designs} - After looking at
+Ardupilot and LibrePilot, there are two prevalent scheduler
+designs. Each work as follows:
+
+~\\
+\noindent \textbf{Ardupilot}
+\begin{enumerate}
+\item Array of tasks, each with a particular interval
+\item During each execution of “loop”
+  \begin{enumerate}
+    \item Wait for update sensor value from inertial
+    sensors. Tries to read sensor, if value not available, delay
+    100us. Repeat until value read or run out of time
+    \item Executes the fast loop
+    \begin{enumerate}
+    \item Update heading
+    \item Update outputs to motor
+    \item Read inertial sensors
+    \item Updates altitude controller
+    \item Increment tick on scheduler
+    \end{enumerate}
+  \end{enumerate}
+\item Scheduler then runs the tasks that it can within 2500 us.  Most
+  tasks finish in 0 time, leaving a lot of time to finish the tick
+\end{enumerate}
+
+\noindent \textbf{Possible Contributions}
+
+\begin{enumerate}
+  \item Previous anomaly detection algorithms looked at program
+    behavior indirectly by observing the variables in program
+    predicates \cite{baah_2006} or built a model of program behavior
+    using the sequence of function calls \cite{fei_argus_2006} or
+    coming up with a list of potential invariants to monitor during
+    program execution \cite{brun_finding_2004}.
+    
+    While each technique has its advantages, they all suffer from the
+    fact that there is a huge
+    space of variables to monitor. Whereas we explicitly
+    make use of control-flow and data-flow analysis during compilation
+    to narrow down the locations and variables to monitor.
+  \item There is a dearth of good benchmarks from real autopilots in
+    the literature, the best set of benchmarks is from JPappaBench,
+    which was converted to do WCET analysis
+\end{enumerate}
+

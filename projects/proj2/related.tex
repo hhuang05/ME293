@@ -1,0 +1,50 @@
+\section{Related Work} \label{related}
+
+\todo[inline]{Why are you including certain works? How does it relate to your
+  work?}
+
+\subsection{Program Slicing}
+
+Since its introduction in 1979 within the computer science community,
+program slicing has been widely applied in analyzing general purpose
+software for uses such as debugging, testing, reverse engineering,
+parallelization, software maintenance and software integration. Program slicing is not just a technique limited to general purpose software, but it is
+applicable to \textit{all} software, even in specialized software such
+as those found in control systems.
+
+Program slicing has been used to aid in the design, analysis and
+maintenance of embedded software. Gerber \& Hong
+\cite{gerber_slicing_1997} tackled the challenge of how to make sure tasks do not go past
+deadlines. Their key insight is that many tasks can be divided into
+two parts through program slicing, a time sensitive and a time insensitive portion. Their
+algorithm then schedules the time sensitive portion while the time
+insensitive portion is deferred. Russel
+\cite{russell_program_2002} made use of program slicing to bridge the
+gap in the hardware-software interface for use in a codesign
+environment. Hansen et al \cite{hansen_assisted_2008}
+\cite{hansen_maintenance_2010} used program slicing to help track
+signals through controller software in order to help expert control
+engineers modify existing software. Mochizuki et al
+\cite{mochizuki_study_2014} used program slicing as a way to help
+developers fix legacy control code. Yazdanshenas \&
+Moonen \cite{yazdanshenas_crossing_2011} \cite{moonen_analyzing_2016} 
+created FlowTracker to help visualize and track information flow
+through heterogeneous software components in order to aid software
+certification.
+
+Program slicing has also been used as an enabler for
+model checking of control software. Matsubara 
+\cite{matsubara_model_2013} and Choi \cite{choi_efficient_2015} both
+used program slicing as a way to reduce the complexity of the control software
+so that model checking can be done. Matsubara based their slicing
+technique on the Variable Dependence Graph (VDG), which is a modified
+version of the Program Dependence Graph (PDG), in a tree form. Choi
+performed property-based slicing, which extracts slices from variables
+that are referenced in assertion statements. These slices are then
+used in their model checker to find bugs in an automotive operating system. 
+
+
+\subsection{Signal-flow graphs}
+In the area of programming languages, Bonchi's recent work
+\cite{bonchi_full_2015} gave a full operational semantics to the
+signal-flow graph.

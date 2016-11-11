@@ -1,0 +1,23 @@
+\section{Discussion} \label{sec:discussion}
+
+%% Description of why the results are meaningful. Were you able to
+%% accomplish the goals you described in intro. What future work might
+%% be done to improve results
+The results show that each filter has its advantanges and
+disadvantages. If we wanted to minimize average absolute error, then
+the Particle Filter is the optimal solution with an average estimator
+error of roughly 0.5 feet. However, the trade-off of low error is long
+execution time per estimation step. Since the Kalman Filter can
+execute over 400 times faster compared to the sampling frequency, this
+means that it is more amenable to a real-time application as sensor
+values will require less buffering. In fact, we can potentially
+decrease the estimation error further if we run multiple Kalman
+filters in parallel.
+
+I can improve on this design by with additional IMU's so that the estimate
+can improve or find ways to reduce the noise. One thing that has
+\textit{not} been considered are the various errors that are
+associated with each sensor. For instance, IMU's are known to have
+problems of bias, drift and accumulated error. Similarly, even though
+the barometer may have really high accuracy, sudden changes in
+atmospheric pressure makes the sensor not as reliable of a source.

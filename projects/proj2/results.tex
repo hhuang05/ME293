@@ -1,0 +1,81 @@
+\section{Results} \label{sec:results}
+
+\subsection{Tracking state variables}
+Figure \ref{fig:kf} and \ref{fig:pf} shows one run of the simulation
+scenario with the Kalman Filter and the Particle Filter tracking the
+states after initial perturbation to altitude. Even though both
+simulations had the same process noise model and the same gains for
+the matrix $L$, the controller gave drastically different responses
+for the simulations involving the Kalman Filter compared to the
+Particle Filter.
+
+For both estimators, we can see that combining the GPS sensor and the
+Barometer sensor allows them to estimate altitude quite well. Both
+Kalman and Particle filters have very little error in the altitude
+estimate. However, both filters do not do well when it comes to
+tracking the pitch angle change rate $q$. Both filters do slightly
+better when it comes to the pitch angle $\theta$. 
+
+\begin{figure}[h]
+  \ig{scale=0.22}{kalman_20ft}
+  \caption{The Kalman filter tracking the current state after a
+    perturbation of 20 feet in altitude.}
+  \label{fig:kf}
+\end{figure}
+
+\begin{figure}
+  \ig{scale=0.2}{particle_20ft}
+  \caption{The Particle filter tracking the current state of the
+    aircraft after a perturbation of 20 feet in altitude. The
+    estimate shown here is the mean of the particle cloud. }
+  \label{fig:pf}
+\end{figure}
+
+\subsection{Comparing Mean Estimator Error}
+
+Performance goal A stated in Section \ref{subsec:perfgoals} is to
+identify an estimator with an average absolute error that is less than
+10 feet in estimating altitude. Figure \ref{fig:kfpfcompare} shows a
+comparison of the distributions of the average absolute errors of the
+Kalman Filter and the Particle Filter. The figure has been normalized
+with respect to the probability of observing an error. We can see that
+the Particle Filter has very little average error, as the error
+distribution is centered around 0.5 feet. In comparison, the Kalman
+Filter has much more error as the the error distribution is centered
+around 12 feet. This means that the Particle Filter \textit{meets} the
+performance goal while the Kalman Filter \textit{does not meet} the
+performance goal. 
+
+\begin{figure}
+  \ig{scale=0.22}{KF_PF_Meancompare}
+  \caption{Histograms comparing the average absolute estimate error in
+    altitude using estimates from 1000 runs of the Kalman filter and 1 run of
+    the particle filter using the mean of 1000 particles.}
+  \label{fig:kfpfcompare}
+\end{figure}
+
+\subsection{Comparing Time of Execution}
+
+Performance goal B stated in Section \ref{subsec:perfgoals} is to have
+the estimator complete its estimation task for a time step within 0.01
+seconds. From Table \ref{table:time}, we can see that for each step,
+the Kalman Filter executes over 400 times faster than the sampling
+period of 0.01 seconds. The Particle Filter estimation is over
+5 times slower than the sampling period. For performance goal B, the
+Kalman Filter is the clear winner.
+
+\begin{table}[h]
+\centering % used for centering table
+\begin{tabular}{c|c} % centered columns (4 columns)
+  \hline \hline
+  Filter & Avg Execution Time per Step \\
+  \hline 
+Kalman Filter & $2.19*10^{-5}$ sec \\
+\hline 
+Particle Filter & $5.64*10^{-2}$ sec \\
+\hline %inserts single line
+\end{tabular}
+\caption{A comparison of the average execution time per step for the
+  Kalman Filter and the Particle Filter with 1000 particles.} % title of Table
+\label{table:time} % is used to refer this table in the text
+\end{table}
