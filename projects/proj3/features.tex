@@ -1,0 +1,46 @@
+\section{Features}
+
+Table \ref{table:features} lists all current thirteen features being used. Eight of
+them, as denoted by the asterisk (*) were used in the original paper
+submitted to AIAA. 
+
+\begin{table*}[t]
+\caption{Feature Set} % title of Table
+\centering % used for centering table
+\begin{tabular}{c c} % centered columns (4 columns)
+\hline\hline %inserts double horizontal lines
+Feature & Equation \\ [0.5ex] % inserts table
+%heading
+\hline \\ [0.5ex] % inserts single horizontal line
+Slope$^*$, $\hat{m}_n$ & $\{\hat{m}_n, \bar{x}_n\} =
+\argmin\left(\sum_{k=0}^{K}
+(x_n(k)-\hat{m}_n(t(k)-t(0))-\bar{x}_n)^2\right) $ \\ [1ex] % inserting body of the table
+Mean, $\bar{x}_n$ & $\bar{x}_n = \frac{1}{K} \sum_{k=0}^{K} x_n(k)$ \\ [1ex]
+
+Median,  & eq here \\ [1ex]
+
+Standard Deviation$^*$, $\hat{\sigma}_n$ & $\hat{\sigma}_n = \frac{1}{K}
+\sum_{k=0}^{K} (x_n(k)-\bar{x}_n)^2 $ \\ [1ex]
+
+Skew, $\hat{\gamma}_n$ & $\hat{\gamma}_n = \frac{\frac{1}{K}
+\sum_{k=0}^{K} (x_n(k)-\bar{x}_n)^3}{\hat{\sigma}_n^{3/2}} $ \\ [1ex]
+
+Kurtosis, $\hat{\kappa}_n$ & $\hat{\kappa}_n = \frac{\frac{1}{K}
+  \sum_{k=0}^{K} (x_n(k)-\bar{x}_n)^4}{\hat{\sigma}_n^2} $ \\ [1ex]
+
+Entropy $H_n$, & $H_n = - \sum_{k=0}^{K} \mathbb{P}[x_n(k)] * \log \mathbb{P}[x_n(k)]$ \\ [1ex] 
+
+Derivative Zero Crossings$^*$, $Z_n$ & $Z_n = \sum_{k=0}^{K-1} (\sign(\dot{x}_n(k))\sign(\dot{x}_n(k-1) \leq 0) $ \\ [1ex] 
+Top Quartile Total Power$^*$, $Phigh_n$  & $Phigh_n = 10*\text{log}_{10}(\sum_{\omega\in\Omega_{top}} P_n[\omega])  $ \\ [1ex] 
+Bottom Quartile Total Power$^*$, $Plow_n$  & $Plow_n = 10*\text{log}_{10}(\sum_{\omega\in\Omega_{bot}} P_n[\omega])  $ \\ [1ex] 
+Ratio of Top to Bottom Power$^*$, $\rho_n$  & $\rho_n = \frac{Phigh_n}{Plow_n}  $ \\ [1ex]  %Note:  This is UNITLESS 
+Peak Power$^*$, $Pmax_n$ & $Pmax_n = \max_\omega(P_n(\omega))$  \\ [1ex]
+Frequency of Peak Power$^*$, $\omega_n$ & $\omega_n = \argmax(P_n(\omega))$  \\ [1ex]
+\hline %inserts single line
+\end{tabular}
+\label{table:features} % is used to refer this table in the text
+\end{table*}
+
+\subsection{Alternatives}
+
+\subsubsection{13 features}

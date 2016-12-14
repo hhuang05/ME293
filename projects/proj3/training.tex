@@ -1,0 +1,111 @@
+\section{Training} \label{sec:training}
+
+\subsection{Normalization} \label{subsec:normalization}
+
+
+%% \subsection{Data Collection} \label{subsec:data}
+
+%% The data were collected from executions of an autopilot mentioned
+%% above in Section \ref{autopilot}. In creating the training and test
+%% set, we make the assumption that software within the avionics domain
+%% will consist of many normal runs and few faulty runs due to the
+%% software being heavily tested. Therefore, the simulation program was run for a
+%% total of 600 trials. 500 trials were run under normal conditions with
+%% no software bug. The other 100 trials were run with the addition of one
+%% software bug in the source code. 250 normal and 50 faulty trials
+%% (50\% of the data) were segregated to create the test set, which was
+%% not touched until verification. The remaining data were then used to
+%% construct the training set. The different fraction of normal and
+%% faulty trials reflect 
+
+%% \subsection{Model Parameters Selection} \label{subsec:cluster_centroids}
+
+%% In our algorithm design, we considered two different methods of clustering
+%% on the training set using K-Means and Expectation Maximization
+%% (EM) \cite{bishop_pattern_2006}. Both algorithms are common clustering
+%% techniques in the machine learning literature and therefore will not
+%% be detailed here. Intuitively, we can choose the optimal number of clusters
+%% which allows logistic regression to produce the best classification
+%% results. However, too many clusters may lead to over-fitting on the
+%% training set and produce bad results on the test set. We used the
+%% silhouette score together with the logistic regression accuracy as
+%% objective measures to determine the optimal number of clusters.
+
+%% The silhouette score \cite{wiki:silhouette} $s(i)$ measures how well a single data point $i$
+%% has been clustered and it is defined as:
+
+%% \begin{equation}
+%%   s(i) = \frac{b(i) - a(i)}{\max\{a(i), b(i)\}}
+%% \end{equation}
+
+%% \noindent where $a(i)$ is the average dissimilarity of data point $i$ with all
+%% other data points within its cluster and $b(i)$ is the lowest average
+%% dissimilarity of data point $i$ to data points in other
+%% clusters. Similarity is measured in terms of distance, so data points
+%% that are closer together are considered more similar. The silhouette
+%% score is bounded between -1 and 1, with -1 being an indication that
+%% data point $i$ has been misclassified, 1 indicates that data point $i$
+%% is well classified and 0 indicating that it is on the border between
+%% two clusters. We measured the performance of a
+%% clustering algorithm by taking the average silhouette score over the
+%% whole data set.
+
+%% \begin{figure}
+%%  \begin{subfigmatrix}{2}% number of columns
+%%   \subfigure[K-Means Clustering]{\ig{}{kmeansanalysis.eps}}
+%%   \subfigure[EM Clustering]{\ig{}{emanalysis.eps}}
+%%  \end{subfigmatrix}
+%%  \caption{Evaluating the K-Means and EM clustering algorithms on the training data using the average silhouette score and average logistic regression accuracy.}
+%%  \label{fig:cluster}
+%% \end{figure}
+
+%% We attempted to select optimal number of clusters that maximized both
+%% model accuracy and silhouette score, using \textit{only} the training
+%% data. Figure~\ref{fig:cluster} shows the silhouette score and logistic
+%% regression accuracy as the number of clusters ($M$) was varied. For the K-Means
+%% algorithm, the silhouette score was maximized at four clusters. The EM
+%% algorithm performed slightly differently, and the silhouette score was
+%% maximized instead at three clusters. In both algorithms, the
+%% silhouette score decreased for a time, then increased again. This is
+%% not surprising, as there may be a large amount of overlap between
+%% clusters when the number of clusters is small. If we consider in the
+%% limit that each data point is a cluster, then the silhouette score is
+%% maximized at 1. This suggests that as the number of clusters are
+%% increased, the silhouette score becomes less meaningful as a measure.
+
+%% For both algorithms, the average regression accuracy dramatically
+%% increased above 90\% when there were $M = 4$ clusters. However, for
+%% the EM algorithm, the regression accuracy that corresponded with
+%% its maximum silhouette score was poor at roughly 65\%. Overall, the
+%% average regression accuracy steadily increased as the number of
+%% clusters increased. This is not surprising as the regression model is
+%% likely over-fitting due to the large number of clusters.
+
+%% %% \begin{table}[h]
+%% %%   \begin{center}
+%% %%     \begin{tabular}{|c|cc|}
+%% %%       \hline
+%% %%       & Silhouette Score & Logistic Regression Accuracy\\
+%% %%       \hline
+%% %%       EM & 0.605 & 94.09\% \\
+%% %%       K-Means & 0.75 & 97.04\% \\
+%% %%       \hline
+%% %%     \end{tabular}
+%% %%   \end{center}
+%% %%   \caption{Evaluation using the test set with four clusters.}
+%% %%   \label{table:testresult}
+%% %% \end{table}
+
+%% Based on the above analysis, we chose the K-Means algorithm as the
+%% clustering method that defines the set of centroids $G$ as it provided
+%% both a higher logistic regression accuracy and a higher silhouette
+%% score compared to EM. Note that the K-Means algorithm is \textit{only} used
+%% during offline training. During online evaluation, the set of cluster
+%% centroids $G$ is used to determine the cluster assignment of a new
+%% data point.
+
+%% Once $G$ has been determined, the model parameters for logistic
+%% regression are then determined by solving equation (\ref{e:prob_bug})
+%% for $\bv{w}$ and offset $a_{ref}$. However, since there exist no
+%% closed-form analytical solution, we use a stochastic gradient descent
+%% approach to find an approximate solution. 

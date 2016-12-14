@@ -1,0 +1,102 @@
+\section{Evaluation} \label{evaluation_1}
+
+\par{~}
+
+\hangindent = 0.35in\textbf{Sensing} - Poll and low-pass filter simulated noisy sensors
+
+\hangindent = 0.35in\textbf{Communication} - Check for external broadcast, possibly a command from air traffic control
+
+\hangindent = 0.35in\textbf{Control} - Update actuator commands based on proportional-derivative response to error between filtered sensor readings and reference trajectory
+
+\hangindent = 0.35in\textbf{Alarm} - Verify that sensor readings are within the error tolerance
+
+\par{~}
+
+All tasks except for the Control task have a nominal period of 0.01
+sec. The Control task executes with a nominal period of 1 second. The
+Sensor task simulates two sensors readings, an altimeter and a
+vertical GPS velocity. Both sensors are simulated subject to additive
+Gaussian white noise. The measurement noise levels, as described by
+their standard deviation, are set randomly at the beginning of each
+simulation. The goal of varying sensor noise is to avoid over-tuning
+algorithm parameters given model-to-model variations for real sensor
+hardware. To this end, each simulation sets the altimeter-noise
+standard deviation to a random value uniformly sampled on the range 5
+- 15 m. Similarly, each simulation sets the velocity-noise standard
+deviation to a random value uniformly sampled on the range 0.1 - 1.0 m/sec.
+
+In all simulations, the aircraft maintains a constant horizontal
+velocity of 120 m/sec. The aircraft vertical velocity is dependent on
+the control-law response to randomized sensor noise and initial
+conditions.  In particular, initial conditions for descent angle and
+horizontal distance to touchdown point are selected randomly using
+uniform sampling (on the range of 0$^\circ$-5$^\circ$ for descent
+angle and on the range of 5 - 20 km for horizontal distance).
+
+The custom autopilot simulator was instrumented to capture seven
+signals for analysis by the proposed bug-detection algorithm.  These
+signals included:  sensed altitude (m), sensed vertical velocity (m),
+estimated vertical acceleration (m/sec$^2$), time interval between
+iterations of the Sensor thread (msec), pitch angle ($^\circ$), total
+time in descent (s), altitude for reference trajectory (m). These
+instrumented $N=7$ variables were labeled $x_n$ in Section \ref{methods}.
+
+\subsection{Continuous Descent and Missed Approach Scenarios}
+
+\begin{figure}[h]
+  \ig{scale=0.4}{landing_scenario.eps} 
+  \caption{Landing scenario.}
+  \label{fig:landing}
+\end{figure}
+
+The custom autopilot can be used to simulate two aircraft landing
+scenarios, as depicted in Figure \ref{fig:landing}. One scenario
+is a standard approach in which the aircraft follows a continuous
+descent trajectory during the final phase of landing.  The other
+scenario is a missed approach, an emergency situation that occurs, for
+example in response to communication from air traffic controllers
+about a runway incursion or in response to an alert from the
+aircraft's Traffic Collision Avoidance System (TCAS). The missed
+approach is simulated by abruptly changing the control reference from
+a continuous descent trajectory to a continuous ascent trajectory. The
+controller responds accordingly, triggering the aircraft to begin an
+abrupt climb.
+
+\subsection{Fault Injection Scenarios}
+The proposed algorithm is aimed, in large part, at identifying
+intermittent bugs, which appear under some circumstances but not
+others.  For such bugs, normal processing occurs most of the time,
+when the bug is not active; however, faulty processing occurs
+sometimes, when the bug becomes active.  To exercise both these cases,
+the source code is configured with a trigger that injects faults by
+running buggy code.  Two software bugs are considered:  a unit
+conversion bug and an integer overflow bug.  The first type of bug
+famously caused the loss of the Mars Climate Orbiter \cite{wiki:mars}.
+The second type of bug recently resulted in the grounding of the
+Boeing 787 Dreamliner fleet  \cite{boeing_bug}.
+
+In the case of the units conversion bug, a function fails to convert
+the system clock time from units of milliseconds to seconds.  This bug occurs in
+the Sensor task. The integer overflow bug occurs at a predicate where
+the Alarm task should be executed. However, due to an integer
+overflow, the Alarm task is prevented from executing, causing a silent
+hazard if the bug suppresses the alarm under conditions when it
+otherwise should trigger. The four quadrants in Figure \ref{fig:fourscenarios}
+summarizes the four scenarios that result from the combination of
+aircraft maneuvers and software fault cases.
+
+\begin{figure}[h]
+  \begin{subfigmatrix}{2}% number of columns
+    \subfigure[Continous Descent - Normal]{\ig{}{normal_cont_desc.eps}}
+    \subfigure[Continous Descent - Fault]{\ig{}{fault_cont_desc.eps}}
+    \subfigure[Missed Approach - Normal]{\ig{}{normal_missed.eps}}
+    \subfigure[Missed Approach - Fault]{\ig{}{fault_missed.eps}}
+  \end{subfigmatrix}
+  \caption{Two aircraft maneuvers and two software states (normal and
+    faulty) results in a total of four scenarios used in training and
+    evaluating our bug-detection algorithm. For each quadrant, the top
+    graph plots the altitude and the bottom graph plots the vertical
+    acceleration. The software fault pictured here is a units bug
+    similar to the one that brought down the Mars Climbat Orbiter.}
+  \label{fig:fourscenarios}
+\end{figure}

@@ -1,0 +1,215 @@
+\section{Baseline method} \label{methods}
+
+We first present the baseline method and its evaluation results for
+bug detection based on data collected from Ardupilot. In the next
+section, we will elaborate on alterative approaches and their
+results. In essence we can view our solution as a pipeline with two
+parts, the first is the data processing portion which includes
+buffering and feature extraction and the second part is the machine
+learning algorithm. 
+
+\missingfigure{Figure that outlines the methods}
+
+%% \section{Proposed Bug-Detection Algorithm} \label{methods}
+We propose an algorithm that can be used to monitor and detect bugs in
+avionics software at run-time. The algorithm acts by continuously
+scanning a set of program variables. As the program executes, the
+values of these monitored variables are captured and buffered. These
+values form a set of time-series signals that can be analyzed by
+subsequent automated processing.  Specifically, subsequent processing
+extracts relevant features from the time series, performs cluster
+assignment based on the features and runs logistic regression modeling
+on the cluster assignments to compute a probability that a software
+fault has occurred. 
+
+\subsection{Buffering}
+
+The buffer records variable values for a fixed number of time
+steps. The length of the buffer and the identity of the variables is
+determined offline, in advance, based upon prior programmer
+knowledge. In this particular investigation, the buffer size was set
+to 1024 time steps, where each time step represents one iteration through the main
+loop of the avionics software. At each time step, the values of $N =10$
+variables were buffered. Thus the buffer consisted of a total of
+10240 values. The specific variables buffered are described in more
+detail in a subsequent section detailing our simulation
+environment. Please see Section \ref{simulation}.
+
+It is not assumed that the algorithm runs in hard real-time, and so
+the interval between each data sample is not necessarily assumed to be
+fixed. For this reason, the system clock time is also buffered at
+each time step. In this investigation, it is assumed that the time
+interval between each sample was approximately $\frac{1}{400}$
+sec. Thus, the 1024 time steps associated with the buffer typically
+cover a duration of just over 3 seconds of real-time operation.
+
+\subsection{Feature Extraction}
+Once the buffer is full, the sampled data are compressed into a
+lower-dimensional feature space that is used for pattern
+recognition. In our implementation, we have defined thirteen
+features. These features are summarized in Table
+\ref{table:features}. These thirteen features are computed for each of
+the $N$ variables stored in the buffer, such that the feature vector
+associated with the buffered data contained is $\vec{\bv{f}}_n \in
+\mathbb{R}^{13}$ for each variable $n \in \{1:N\}$. 
+
+In Table \ref{table:features}, the variable $x_n(k)$ refers to the \textit{n}-th
+buffered variable at buffer index \textit{k}. The time signal
+corresponding to the buffer is labeled $t(k)$. The first point in the
+buffer is assigned an index of zero and the last, an index of
+\textit{K}. 
+
+For the \textit{n}-th buffered variable, the power spectrum
+$P_n(\omega)$ as a function of frequency $\omega$ is computed from the
+Fourier transform, $X=\mathcal{F}[x_n]$ and its conjugate, denoted by
+the * operator, such that $P_n = XX*$. It is assumed that the power
+spectrum values can be sorted by power, such that frequencies
+associated with the top quarter of power values for any signal are
+grouped in the set $\Omega_{top}$; the frequencies associated with the
+bottom quarter of power values are grouped in the set $\Omega_{bot}$.
+
+\begin{table*}[t]
+\caption{Feature Set} % title of Table
+\centering % used for centering table
+\begin{tabular}{c c} % centered columns (4 columns)
+\hline\hline %inserts double horizontal lines
+Feature & Equation \\ [0.5ex] % inserts table
+%heading
+\hline \\ [0.5ex] % inserts single horizontal line
+Slope, $\hat{m}_n$ & $\{\hat{m}_n, \bar{x}_n\} =
+\argmin\left(\sum_{k=0}^{K}
+(x_n(k)-\hat{m}_n(t(k)-t(0))-\bar{x}_n)^2\right) $ \\ [1ex] % inserting body of the table
+Mean, $\bar{x}_n$ & $\bar{x}_n = \frac{1}{K} \sum_{k=0}^{K} x_n(k)$ \\ [1ex]
+
+Median,  & eq here \\ [1ex]
+
+Standard Deviation, $\hat{\sigma}_n$ & $\hat{\sigma}_n = \frac{1}{K}
+\sum_{k=0}^{K} (x_n(k)-\bar{x}_n)^2 $ \\ [1ex]
+
+Skew, $\hat{\gamma}_n$ & $\hat{\gamma}_n = \frac{\frac{1}{K}
+\sum_{k=0}^{K} (x_n(k)-\bar{x}_n)^3}{\hat{\sigma}_n^{3/2}} $ \\ [1ex]
+
+Kurtosis, $\hat{\kappa}_n$ & $\hat{\kappa}_n = \frac{\frac{1}{K}
+  \sum_{k=0}^{K} (x_n(k)-\bar{x}_n)^4}{\hat{\sigma}_n^2} $ \\ [1ex]
+
+Entropy $H_n$, & $H_n = - \sum_{k=0}^{K} \mathbb{P}[x_n(k)] * \log \mathbb{P}[x_n(k)]$ \\ [1ex] 
+
+Derivative Zero Crossings, $Z_n$ & $Z_n = \sum_{k=0}^{K-1} (\sign(\dot{x}_n(k))\sign(\dot{x}_n(k-1) \leq 0) $ \\ [1ex] 
+Top Quartile Total Power, $Phigh_n$  & $Phigh_n = 10*\text{log}_{10}(\sum_{\omega\in\Omega_{top}} P_n[\omega])  $ \\ [1ex] 
+Bottom Quartile Total Power, $Plow_n$  & $Plow_n = 10*\text{log}_{10}(\sum_{\omega\in\Omega_{bot}} P_n[\omega])  $ \\ [1ex] 
+Ratio of Top to Bottom Power, $\rho_n$  & $\rho_n = \frac{Phigh_n}{Plow_n}  $ \\ [1ex]  %Note:  This is UNITLESS 
+Peak Power, $Pmax_n$ & $Pmax_n = \max_\omega(P_n(\omega))$  \\ [1ex]
+Frequency of Peak Power, $\omega_n$ & $\omega_n = \argmax(P_n(\omega))$  \\ [1ex]
+\hline %inserts single line
+\end{tabular}
+\label{table:features} % is used to refer this table in the text
+\end{table*}
+
+%% NOT SURE IF NEEDED
+%% \subsection{Cluster Assignment}
+%% Clustering has been shown to increase classification accuracy in the
+%% machine learning literature in the problem of text classification
+%% \cite{kyriakopoulou_text_2006}. In that context, clustering was used
+%% both as a dimensionality reduction technique and as a nonlinear filter
+%% that operates by learning inherent structure from the data. We have found
+%% that clustering achieves a similar purpose in our algorithm.
+
+%% In order to assign $\vec{\bv{f}_n}$ to the proper cluster,
+%% let $G$ be the set of clustering centroids which were derived from the
+%% training data (please see Section \ref{subsec:cluster_centroids} for
+%% more detail):
+
+%% \begin{equation}
+%%   \label{e:centroids}
+%%   G = \{ \vec{g}(m) | m = 1:M \} \text{ where } M = 4
+%% \end{equation}
+
+%% \noindent A set number ($M = 4$ in this case) of clusters are considered in this
+%% monitor. Cluster assignment is then performed by creating the cluster
+%% assignment vector $\bv{c}$ as follows:
+
+%% \begin{equation}
+%%   \label{e:bestcluster}
+%%   m_n = \argmin_m \| \vec{g}(m) - \vec{\bv{f}_n} \|_2 
+%% \end{equation}
+%% \begin{equation}
+%%   \label{e:clusterassign}
+%%   \bv{c} = [\,h(m_1) \enspace h(m_2) \enspace \hdots \enspace h(m_N) \,]^T
+%% \end{equation}
+
+%% \noindent The function $h$ converts an integer $i$ to a binary row vector of
+%% length M, where the $i^{\text{th}}$ element is one and all other elements are
+%% zero. For example, if $\vec{\bv{f}_n}$ was assigned to cluster 3, then
+%% $\bv{c}= [0,0,1,0]^T$. By aggregating cluster assignments over all $N$
+%% variables we transform the feature vector $\bv{f} \in \mathbb{R}^{56
+%%   \times 1}$ to a cluster assignment vector $\bv{c} \in \mathbb{Z}^{28
+%%   \times 1}$.
+
+\subsection{Fault-Probability Model}
+
+%% \subsubsection{Logistic Regression}
+
+In order to assess whether a bug is present, we apply a probability
+model obtained through logistic regression. This process maps the
+feature vector $\vec{\bv{f}}_n$ into a probability that describes
+the algorithm's confidence that a bug is present.  The probability is
+modeled as a surface in feature space that has a sigmoid
+profile in one dimension and that is uniform in all other
+dimensions. The shape of this probability surface is illustrated in
+Figure \ref{fig:sigmoid}.
+
+We first define $a(\vec{\bv{f}}_n)$ to be the coordinate in the sigmoid direction,
+the probability $\mathbb{P}[Bug | Data]$ can be written as:
+
+\begin{equation}
+  \label{e:prob_bug}
+  \mathbb{P}[Bug | Data] = \frac{1}{1 + \exp(-a(\vec{\bv{f}}_n))}
+\end{equation}
+
+The $a$ coordinate is obtained from $\vec{\bv{f}}_n$ by an affine
+transformation that makes use of a weighting vector $\bv{w}$ and an
+offset $a_{ref}$ whose values are set during offline training. 
+
+\begin{equation}
+  \label{e:logreg}
+  a = \bv{w}^T \vec{\bv{f}}_n - a_{ref}
+\end{equation}
+
+\begin{figure}[h]
+  \ig{scale=0.45}{sigmoid2.eps} 
+  \caption{The feature vector $\vec{\bv{f}}_n$ is mapped into a probability
+    space through the sigmoid function. The illustration represents
+    two dimensions of the feature space, where $b$ is an arbitrary
+    coordinate orthogonal to $a$.}
+  \label{fig:sigmoid}
+\end{figure}
+
+This transformation sets the 50\% probability surface to be the
+hyperplane perpendicular to the weighting vector $\bv{w}$ and shifted
+from the origin by $a_{ref}$.  Other surfaces of constant probability
+are also hyperplanes normal to the vector $\bv{w}$.  When $\vec{\bv{f}}_n$
+aligns with $\bv{w}$, then $a$ is positive, and the probability tends
+toward 1; when $\vec{\bv{f}}_n$ points opposite $\bv{w}$, then $a$ is
+negative, and the probability tends toward 0.  The magnitude of $a$ is
+determined not only by the alignment of the $\bv{w}$ and
+$\vec{\bv{f}}_n$ vectors, but
+also by the magnitude of $\bv{w}$.  As the magnitude of the weight
+vector increases, the width of the sigmoid shrinks (e.g., hyperplanes
+of constant probability are spaced more closely together in feature
+space).
+
+In order to determine whether or not an alarm flag is raised, the
+probability $\mathbb{P}[Bug | Data]$ is compared to a threshold, $\mathbb{P}[Bug | Data]
+> T_p \to \text{alert}$. If the probability exceeds the threshold
+$T_p$, an alert is raised. The choice of the threshold represents a
+trade-off between false alarms (false positives) and missed detections
+(false negatives). In our implementation $T_P$ was set to a
+value of XXXXX.
+
+\todo[inline]{Fill in value for XXXXX}
+
+This choice was made to balance false positives and
+false negatives based on a Receiver Operator Characteristic (ROC)
+Curve analysis, as discussed in Section \ref{sec:evaluation}.
+
+%% \subsubsection{Support Vector Machine}

@@ -1,0 +1,43 @@
+\section{Problem Description}  \label{sec:physys}
+
+%% Description of the problem you are trying to solve and the states you
+%% are trying to control; description of the performance goal(s) you seek
+%% to achieve through controller/estimator design.
+
+\subsection{System Description}
+
+The system that I am looking at is a software system, specifically
+looking at trying to apply state estimation ideas to software. The
+particular problem I am examining is insertion sort.
+
+\begin{description}
+\item[State] The state is the list of numbers to be sorted.
+\item[Sensor Model] The hardest part of this project is coming up with a
+  sensor model. Currently I am assuming perfect sensing into random
+  elements of the sorted portion of the list.
+\item[Prediction] State estimation methods such as the Kalman Filter
+  generates a prior based on model dynamics, usually denoted $
+  \hat{\mathbf{x}}_{k}^{+}$. For insertion sort, we will initially
+  assume that the estimator is estimating the location to insert a new item
+  in the sorted list. To produce this estimate, we will use the lever
+  rule:
+  \begin{align}
+    f &= \frac{newval - lowval}{highval - lowval} \\
+    i\_est &= (i\_high - i\_low)*f + i\_low
+  \end{align}  
+\item[Correction] To produce $\hat{\mathbf{x}}_{k}^{-}$, we are
+  currently exploring two options. The first option is to use the
+  sensor values and the ground truth and generate a residual, then we
+  can use the residual to sort locally the place where the residual
+  occurred. The second option is to do the lever rule again.
+\end{description}
+
+\subsection{Performance Goals} \label{subsec:perfgoals}
+
+%% There are two performance goals that I am interested in. The optimatl
+%% estimator shall:
+%% \begin{description}
+%% \item [A] Have an average absolute error that is less than 10 fee in
+%%   its estimate of current altitude. 
+%% \item [B] Be able to complete the estimation within 0.01 second.
+%% \end{description}
