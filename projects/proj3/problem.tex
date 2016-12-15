@@ -7,24 +7,54 @@
 
 \subsection{System Description}
 
-Instead of applying state estimation techniques to a physical system,
-I want to apply these techniques to a software-only
-system. Specifically, looking at trying to apply state estimation
-ideas to the insertion sort algorithm and data structure. Sorting is
-the classical way introductory computer science students learn about
-computational complexity. There are many sorting algorithms, we will
-focus on the \textit{insertion} sort algorithm. We will illustrate this first
-with an example and then we will give the exact algorithm. 
+The problem of sorting numbers is a fundamental
+way to study algorithms for introductory computer science
+students. While there are many sorting algorithms, in this paper we
+will focus on the \textit{insertion} sort algorithm. The insertion
+sort algorithm sorts in place, which means that it needs no extra
+storage to hold intermediate sorted lists. In order to sort in place,
+the algorithm maintains an invariant, which is that the sorted
+subarray always starts from the left and advances right. An example of
+the insertion sort algorithm applied to a list of five numberes is
+shown in Figure \ref{fig:insertsort}.
 
-The algorithmm starts with an unordered list of numbers and starts at
-the left end.
+\begin{figure}[h]
+  \ig{scale=0.8}{figs/insertsortexample}
+  \caption{Example of insertion sort on a list of five numbers.}
+  \label{fig:insertsort}
+\end{figure}
+
+In Figure \ref{fig:insertsort}, the red arrow points to the index of
+the current item being examined. The black arrow points to the end of
+the sorted subarray.  In step A, the current item is 5 and it is in
+the right order. In step B, 1 is smaller than 3 and 5 so it moves to
+the end of the sorted array. In step C, 9 is in the correct
+position. In step D, 7 is less than 9 and so it must move down. In
+step E, the algorithm completes as the black arrow advances to the end of the
+array. 
+
+The pseudocode for the insertion sort algorithm is shown in Algorithm 1. 
+
+\begin{algorithm}
+  \label{algo:insertsort}
+  \begin{algorithmic}[1]
+    \Procedure{insertsort}{$list$}
+    \For{$i \gets 1$ to length($list$)}    
+    \State $tmp \gets list \lbrack i \rbrack$
+    \State $j \gets i - 1$
+    \While{$j > 0$ and $tmp < list \lbrack j \rbrack$}
+    \State $list \lbrack j+1 \rbrack \gets list \lbrack j \rbrack$
+    \State $j \gets j - 1$
+    \EndWhile
+    \State $list \lbrack j+1 \rbrack \gets tmp$
+    \EndFor
+    \State \textbf{return} $list$
+    \EndProcedure
+  \end{algorithmic}
+  \caption{The insertion sort algorithm assumes that the list is zero-indexed}  
+\end{algorithm}
 
 
-
-The system under study
-The system that I am looking at is a software system, specifically
-looking at trying to apply state estimation ideas to software. The
-particular problem I am examining is insertion sort.
 
 \begin{description}
 \item[State] The state is the list of numbers to be sorted.
